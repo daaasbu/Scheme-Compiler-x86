@@ -89,6 +89,7 @@
 (library (Framework wrappers)
   (export
     pass->wrapper
+    pass->unparser
     expose-frame-var/wrapper
     flatten-program/wrapper
     generate-x86-64/wrapper
@@ -96,10 +97,8 @@
     verify-scheme/wrapper)
   (import
     (chezscheme)
+    (source-grammar)
     (Framework match)
-    (Framework GenGrammars l01-verify-scheme)
-    (Framework GenGrammars l37-expose-frame-var)
-    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
@@ -109,6 +108,17 @@
     '(except (chezscheme) set!)
     '(Framework helpers)
     '(Framework helpers frame-variables)))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass 
+      ((source) unparse-LverifyScheme) ;; Id
+      ((verify-scheme) unparse-LverifyScheme)
+      ((expose-frame-var) unparse-LexposeFrameVar)
+      ((flatten-program) unparse-LflattenProgram)
+      ((generate-x86-64) (lambda (x) x)) ;; Id
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -126,7 +136,7 @@
   (environment env)
   (import (only (Framework wrappers aux) set! handle-overflow))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
+		   ,x))
   ,return-value-register)
 
 (define-language-wrapper expose-frame-var/wrapper
@@ -136,8 +146,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds 
-	(if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper flatten-program/wrapper
@@ -147,8 +156,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds 
-	(if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
@@ -160,3 +168,76 @@
     (read in)))
 
 )
+
+
+
+
+;;(library (Framework wrappers)
+;;  (export pass->unparser pass->wrapper source/wrapper verify-scheme/wrapper generate-x86-64/wrapper)
+;;  (import
+;;    (chezscheme)
+;;    (source-grammar)
+;;    (Framework helpers)
+;;    (Framework driver))
+;;
+;;(define env
+;;  (environment
+;;    '(chezscheme)
+;;    '(Framework helpers)))
+;;
+;;(define pass->unparser
+;;  (lambda (pass)
+;;    (case pass 
+;;      ((source) (lambda (x) x)) ;; Id
+;;      ((verify-scheme) unparse-LverifyScheme)
+;;      ((generate-x86-64) (lambda (x) x)) ;; Id
+;;      (else (errorf 'pass->unparser
+;;              "Unparser for pass ~s not found" pass)))))
+;;
+;;(define pass->wrapper
+;;  (lambda (pass)
+;;    (case pass
+;;      ((source) source/wrapper)
+;;      ((verify-scheme) verify-scheme/wrapper)
+;;      ((expose-frame-var) )
+;;      ((generate-x86-64) generate-x86-64/wrapper)
+;;      (else (errorf 'pass->wrapper
+;;              "Wrapper for pass ~s not found" pass)))))
+;;
+;;(define-language-wrapper
+;;  (source/wrapper verify-scheme/wrapper)
+;;  (x)
+;;  (environment env)
+;;  (import
+;;    (except (chezscheme) set!)
+;;    (Framework helpers))
+;;  (define int64-in-range?
+;;    (lambda (x)
+;;      (<= (- (expt 2 63)) x (- (expt 2 63) 1))))
+;;  (define handle-overflow
+;;    (lambda (x)
+;;      (cond
+;;        [(not (number? x)) x]
+;;        [(int64-in-range? x) x]
+;;        [(not (= x (logand 18446744073709551615 x)))
+;;         (handle-overflow (logand 18446744073709551615 x))]
+;;        [(< x 0) (handle-overflow (+ x (expt 2 64)))]
+;;        [else (handle-overflow (- x (expt 2 64)))])))
+;;  (define-syntax set!
+;;    (let ()
+;;      (import scheme)
+;;      (syntax-rules ()
+;;        [(_ x expr) (set! x (handle-overflow expr))])))
+;;  (reset-machine-state!)
+;;  ;,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
+;;  ,return-value-register)
+;;
+;;(define (generate-x86-64/wrapper program)
+;;  (let-values ([(out in err pid)
+;;                (open-process-ports
+;;                  (format "exec '~a'" program)
+;;                  (buffer-mode block)
+;;                  (native-transcoder))])
+;;    (read in)))
+;;
+;;)
