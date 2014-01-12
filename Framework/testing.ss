@@ -16,6 +16,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Adapated for P423 Spring 2012 by Claire Alvis and Chris Frisz
+;; Addapted for P423/P523 Spring 2014 by Tim Zakian
 ;;
 ;; This testing framework will run the tests found in (Framework
 ;; test-suite) over any compiler exported in (Compiler compile).
@@ -134,12 +135,12 @@
 (define-syntax invalid
   (syntax-rules ()
     ((_ ts ...)
-     (invalid-tests '(ts ...)))))
+     (invalid-tests (map cdr '(ts ...))))))
 
 (define-syntax valid
   (syntax-rules ()
     ((_ ts ...)
-     (valid-tests '(ts ...)))))
+     (valid-tests (map cdr '(ts ...))))))
 
 
 ;; Record that defines the test runner. This records the number of
@@ -396,8 +397,8 @@
     (printf "~nTesting Summary~n")
     (printf "~a~n" (make-string 28 #\-))
     (printf "Expected Passes:~24,8t~4d~n"      pass-expected)
-    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
     (printf "Expected Failures:~24,8t~4d~n"    fail-expected)
+    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
     (printf "Unexpected Failures: ~24,8t~4d~n" fail-unexpected)
     (printf "Total:~24,8t~4d~n"
             (+ pass-expected pass-unexpected

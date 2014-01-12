@@ -142,6 +142,7 @@
 
 (library (Framework wrappers)
   (export
+    pass->unparser
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
@@ -160,17 +161,8 @@
     generate-x86-64/wrapper)
   (import
     (chezscheme)
+    (source-grammar)
     (Framework match)
-    (Framework GenGrammars l01-verify-scheme)
-    (Framework GenGrammars l27-uncover-frame-conflict)
-    (Framework GenGrammars l28-introduce-allocation-forms)
-    (Framework GenGrammars l32-uncover-register-conflict)
-    (Framework GenGrammars l33-assign-registers)
-    (Framework GenGrammars l35-discard-call-live)
-    (Framework GenGrammars l36-finalize-locations)
-    (Framework GenGrammars l37-expose-frame-var)
-    (Framework GenGrammars l39-expose-basic-blocks)
-    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
@@ -180,6 +172,27 @@
     '(except (chezscheme) set!)
     '(Framework helpers)
     '(Framework helpers frame-variables)))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass
+      ((source) unparse-LverifyScheme)
+      ((verify-scheme) unparse-LverifyScheme)
+      ((uncover-frame-conflict) unparse-LuncoverFrameConflict)
+      ((introduce-allocation-forms) unparse-LintroduceAllocationForms)
+      ((select-instructions) unparse-LintroduceAllocationForms)
+      ((uncover-register-conflict) unparse-LuncoverRegisterConflict)
+      ((assign-registers) unparse-LassignRegisters)
+      ((assign-frame) unparse-LassignFrame)
+      ((finalize-frame-locations) unparse-LintroduceAllocationForms)
+      ((discard-call-live) unparse-LdiscardCallLive)
+      ((finalize-locations) unparse-LfinalizeLocations)
+      ((expose-frame-var) unparse-LexposeFrameVar)
+      ((expose-basic-blocks) unparse-LexposeBasicBlocks)
+      ((flatten-program) unparse-LflattenProgram)
+      ((generate-x86-64) (lambda (x) x))
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -210,7 +223,7 @@
             lambda true false nop))
   (reset-machine-state!)
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -223,7 +236,7 @@
     (only (Framework wrappers aux)
       set! handle-overflow locals lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -244,7 +257,7 @@
       locals ulocals locate set! handle-overflow
       lambda true false nop frame-conflict))
   (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l28-introduce-allocation-forms x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -257,7 +270,7 @@
       handle-overflow set! locate locals ulocals
       lambda register-conflict frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -270,7 +283,7 @@
       handle-overflow set! locate locals ulocals
       spills frame-conflict lambda true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
+       ,x))
   ,return-value-register)
 
 (define-language-wrapper discard-call-live/wrapper (x)
@@ -280,7 +293,7 @@
             true false nop)
     (only (chezscheme) lambda))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
+       ,x))
   ,return-value-register)
 
 (define-language-wrapper finalize-locations/wrapper
@@ -290,7 +303,7 @@
     (only (Framework wrappers aux)
       handle-overflow set! true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
+       ,x))
   ,return-value-register)
 
 (define-language-wrapper expose-frame-var/wrapper
@@ -302,7 +315,7 @@
   (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper expose-basic-blocks/wrapper
@@ -314,7 +327,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper flatten-program/wrapper
@@ -326,7 +339,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
@@ -338,3 +351,4 @@
     (read in)))
 
 )
+
