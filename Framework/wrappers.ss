@@ -1,8 +1,8 @@
 (library (Framework wrappers)
-  (export pass->wrapper source/wrapper verify-scheme/wrapper generate-x86-64/wrapper)
+  (export pass->wrapper pass->unparser source/wrapper verify-scheme/wrapper generate-x86-64/wrapper)
   (import
     (chezscheme)
-    (Framework GenGrammars l01-verify-scheme)
+    (source-grammar)
     (Framework helpers)
     (Framework driver))
 
@@ -10,6 +10,15 @@
   (environment
     '(chezscheme)
     '(Framework helpers)))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass
+      ((source) unparse-LverifyScheme)
+      ((verify-scheme) unparse-LverifyScheme)
+      ((generate-x86-64) (lambda (x) x))
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -45,7 +54,7 @@
       (syntax-rules ()
         [(_ x expr) (set! x (handle-overflow expr))])))
   (reset-machine-state!)
-  ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
+  ,x
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)

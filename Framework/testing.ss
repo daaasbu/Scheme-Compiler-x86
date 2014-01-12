@@ -396,8 +396,8 @@
     (printf "~nTesting Summary~n")
     (printf "~a~n" (make-string 28 #\-))
     (printf "Expected Passes:~24,8t~4d~n"      pass-expected)
-    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
     (printf "Expected Failures:~24,8t~4d~n"    fail-expected)
+    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
     (printf "Unexpected Failures: ~24,8t~4d~n" fail-unexpected)
     (printf "Total:~24,8t~4d~n"
             (+ pass-expected pass-unexpected
