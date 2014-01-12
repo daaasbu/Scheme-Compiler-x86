@@ -111,9 +111,9 @@
     (import scheme)
     (syntax-rules ()
       [(_ ([x* loc*] ...) body)
-       (let-syntax ([x* (identifier-syntax 
-                          (id loc*) 
-                          ((set! id e) 
+       (let-syntax ([x* (identifier-syntax
+                          (id loc*)
+                          ((set! id e)
                            (set! loc* (handle-overflow e))))] ...)
          body)])))
 
@@ -128,6 +128,7 @@
 (library (Framework wrappers)
   (export
     pass->wrapper
+    pass->unparser
     source/wrapper
     verify-scheme/wrapper
     finalize-locations/wrapper
@@ -137,12 +138,8 @@
     generate-x86-64/wrapper)
   (import
     (chezscheme)
+    (source-grammar)
     (Framework match)
-    (Framework GenGrammars l01-verify-scheme)
-    (Framework GenGrammars l36-finalize-locations)
-    (Framework GenGrammars l37-expose-frame-var)
-    (Framework GenGrammars l39-expose-basic-blocks)
-    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) rewrite-opnds))
@@ -152,6 +149,19 @@
     '(except (chezscheme) set!)
     '(Framework helpers)
     '(Framework helpers frame-variables)))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass
+      ((source) unparse-LverifyScheme)
+      ((verify-scheme) unparse-LverifyScheme)
+      ((finalize-locations) unparse-LfinalizeLocations)
+      ((expose-frame-var) unparse-LexposeFrameVar)
+      ((expose-basic-blocks) unparse-LexposeBasicBlocks)
+      ((flatten-program) unparse-LflattenProgram)
+      ((generate-x86-64) (lambda (x) x))
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -172,8 +182,7 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow set! locate true false nop))
-  (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)))
+  (call/cc (lambda (k) (set! ,return-address-register k) ,x))
   ,return-value-register)
 
 (define-language-wrapper finalize-locations/wrapper
@@ -182,8 +191,7 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow set! true false nop))
-  (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
+  (call/cc (lambda (k) (set! ,return-address-register k) ,x))
   ,return-value-register)
 
 (define-language-wrapper expose-frame-var/wrapper
@@ -195,7 +203,7 @@
   (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper expose-basic-blocks/wrapper
@@ -204,10 +212,10 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow set!))
-  (call/cc 
+  (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper flatten-program/wrapper
@@ -216,10 +224,10 @@
   (import
     (only (Framework wrappers aux)
       handle-overflow set! code jump))
-  (call/cc 
+  (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
