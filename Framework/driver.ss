@@ -34,19 +34,13 @@
 ;; correctness at each step of the compiler.
 ;;
 ;; Simple usage:
-;; (define-compiler (<name> <name-stepper> <wrapper-proc> <unparser-proc> <parser>)  <specs> ...)
+;; (define-compiler (<name> <name-stepper> <wrapper-proc>)  <specs> ...)
 ;;
 ;; This defines a compiler <name> and and alternate compiler for 
-;; debugging called <name-stepper>, and uses a procedure <wrapper-proc>
-;; to retrieve the appropriate wrapper for each pass as wellas a procedure
-;; <unparser-proc> to parse into S-expressions so that the wrappers can run as well
-;; as to produce humanan readable output. An example of a
+;; debugging called <name-passes>, and uses a procedure <wrapper-proc>
+;; to retrieve the appropriate wrapper for each pass.  An example of a
 ;; <wrapper-proc> is the pass->wrapper procedure provided in
-;; wrappers.ss. An example of a
-;; <unparser-proc> is the pass->unparser procedure provided in
-;; wrappers.ss. 
-;; 
-;; Each <spec> should be one of the following:
+;; wrappers.ss. Each <spec> should be one of the following:
 ;;
 ;;   (<pass>)
 ;;       where pass is the name of the pass to call

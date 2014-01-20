@@ -17,6 +17,8 @@ import FrameworkHs.ParseL01                    (parseProg)
 import FrameworkHs.GenGrammars.L01VerifyScheme
 import CompilerHs.VerifyScheme                 (verifyScheme)
 import CompilerHs.GenerateX86_64               (generateX86_64)
+import CompilerHs.FlattenProgram               (flattenProgram)
+import CompilerHs.ExposeFrameVar               (exposeFrameVar)
 
 import qualified Data.ByteString as B
 
@@ -26,9 +28,22 @@ vfs = P423Pass { pass = verifyScheme
                , trace = False
                }
 
+efv = P423Pass { pass = exposeFrameVar
+               , passName = "exposeFrameVar"
+               , wrapperName = "expose-frame-var/wrapper"
+               , trace = False
+               }
+
+flp = P423Pass { pass = flattenProgram
+               , passName = "flattenProgram"
+               , wrapperName = "flatten-program/wrapper"
+               , trace = False
+               }
+
 p423Compile :: LispVal -> CompileM String
 p423Compile l = do
-  p  <- liftPassM$ parseProg l
-  p  <- runPass vfs p
+  p <- liftPassM$ parseProg l
+  p <- runPass vfs p
+  p <- runPass efv p
+  p <- runPass flp p  
   assemble$ generateX86_64 p
-
