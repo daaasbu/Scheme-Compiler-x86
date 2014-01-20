@@ -20,7 +20,7 @@
                     [(set! ,v (,op ,v1 ,i)) (emit (bin->assem op) i v1)]
              [(set! ,v1 ,v2) (emit 'movq v2 v1)]
              [(set! ,v ,i) (emit 'movq i v)]
-             [else (error who "Error")]))
+             [else (error who "Not a valid input")]))
 )
 
 
