@@ -9,19 +9,32 @@
 (define-parser parse-LverifyScheme LverifyScheme)
 
 (define-pass verify-scheme : LverifyScheme (x) -> LverifyScheme ()
-  (Prog : Prog (x) -> Prog ()
-        [(begin ,[s] ,[s*] ...) x])
-  (Statement : Statement (x) -> Statement ()
-             [(set! ,v (,op ,v1 ,v2))
-              (unless (eqv? v v1)
-                (error who "Registers must match" v v1))]
-             [(set! ,v (,op ,v1 ,i))
-              (if (int32? i)
-                  (if (and (register? v) register? v1)
-                      (unless (eqv? v v1)
-                        (error who "Registers must match" v v1))
-                      (error who "Not a valid register" v v1))
-                  (error who "Not an int64" i))]
-             [(set! ,v1 ,v2) (if (and (register? v1) (register? v2)) x (error who "Not a valid register" v1 v2))]
-             [(set! ,v ,i) (if (register? v) x (error who "Not a valid register" v))]))
-)
+  ;(Prog : Prog (x) -> Prog ()
+        ;[(letrec ((,[l] ,[le]) ...) ,[tl]) x])
+  (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
+              [(lambda () ,[tl]) x])
+  (Tail : Tail (x) -> Tail ()
+        [(,triv) (when (integer? triv) (error who "cannot be an integer" triv))]
+        ;[(begin ,[ef*] ... ,[tl]) x]
+        )
+  (Effect : Effect (x) -> Effect ()
+          [(set! ,[v] ,[triv])
+           (when (and (frame-var? v) (frame-var? triv)) (error who "cannot both be frame-variables" v triv))
+           (when (label? triv) (unless (register? v) (error who "must be a register" v)))
+           (when (integer? triv) (unless (or
+                                          (and (<= (* -1 (expt 2 31)) triv) (>= (sub1 (expt 2 31)) triv))
+                                          (and (register? v) (and (<= (* -1 (expt 2 63)) triv) (>= (sub1 (expt 2 63)) triv)))) (error who "error")))
+           ]
+          [(set! ,[v] (,[op] ,[triv1] ,[triv2]))
+           (when (integer? triv1) (unless (and (<= (* -1 (expt 2 31)) triv1)
+                                               (>= (sub1 (expt 2 31)) triv1))
+                                    (error who "integer must be in specified range" triv1)))
+           (when (integer? triv2) (unless (and (<= (* -1 (expt 2 31)) triv2)
+                                               (>= (sub1 (expt 2 31)) triv2))
+                                    (error who "integer must be in specified range" triv2)))
+           (unless (eqv? v triv1) (error who "must equal" v triv1))
+           (when (or (label? triv1) (label? triv2)) (error who "operand cannot be a label"))
+           (when (and (frame-var? triv1) (frame-var? triv2)) (error who "operands cannot both be frame-variables" triv1 triv2))
+           (when (eqv? op *) (unless (register? v) (error who "Variable must be a register" v)))
+           (when (eqv? op sra) (unless (and (integer? triv2) (<= 0 triv2) (>= 63 triv2)) (error who "Must be an integer value between 0 and 63" triv2)))
+           ])))
