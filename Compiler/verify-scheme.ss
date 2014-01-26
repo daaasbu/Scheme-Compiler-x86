@@ -8,33 +8,62 @@
 
 (define-parser parse-LverifyScheme LverifyScheme)
 
-(define-pass verify-scheme : LverifyScheme (x) -> LverifyScheme ()
-  ;(Prog : Prog (x) -> Prog ()
-        ;[(letrec ((,[l] ,[le]) ...) ,[tl]) x])
-  (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
-              [(lambda () ,[tl]) x])
-  (Tail : Tail (x) -> Tail ()
-        [(,triv) (when (integer? triv) (error who "cannot be an integer" triv))]
-        ;[(begin ,[ef*] ... ,[tl]) x]
-        )
-  (Effect : Effect (x) -> Effect ()
-          [(set! ,[v] ,[triv])
-           (when (and (frame-var? v) (frame-var? triv)) (error who "cannot both be frame-variables" v triv))
-           (when (label? triv) (unless (register? v) (error who "must be a register" v)))
-           (when (integer? triv) (unless (or
-                                          (and (<= (* -1 (expt 2 31)) triv) (>= (sub1 (expt 2 31)) triv))
-                                          (and (register? v) (and (<= (* -1 (expt 2 63)) triv) (>= (sub1 (expt 2 63)) triv)))) (error who "error")))
-           ]
-          [(set! ,[v] (,[op] ,[triv1] ,[triv2]))
-           (when (integer? triv1) (unless (and (<= (* -1 (expt 2 31)) triv1)
-                                               (>= (sub1 (expt 2 31)) triv1))
-                                    (error who "integer must be in specified range" triv1)))
-           (when (integer? triv2) (unless (and (<= (* -1 (expt 2 31)) triv2)
-                                               (>= (sub1 (expt 2 31)) triv2))
-                                    (error who "integer must be in specified range" triv2)))
-           (unless (eqv? v triv1) (error who "must equal" v triv1))
-           (when (or (label? triv1) (label? triv2)) (error who "operand cannot be a label"))
-           (when (and (frame-var? triv1) (frame-var? triv2)) (error who "operands cannot both be frame-variables" triv1 triv2))
-           (when (eqv? op *) (unless (register? v) (error who "Variable must be a register" v)))
-           (when (eqv? op sra) (unless (and (integer? triv2) (<= 0 triv2) (>= 63 triv2)) (error who "Must be an integer value between 0 and 63" triv2)))
-           ])))
+
+
+
+         (define binop?
+           (lambda (x)
+             (if (memq x '(+ - * logand logor sra)) #t #f)))
+         (define rule1
+           (lambda (x y)
+             (eq? x y)))
+         (define rule2
+           (lambda (x y)
+             (and (not (label? x)) (not (label? y)))))
+         (define rule3/4
+           (lambda (x y)
+             (or (not (frame-var? x)) (not (frame-var? y)))))
+         (define rule5
+           (lambda (x y)
+             (when (label? x)
+                   (register? y))))
+         (define rule6
+           (lambda (x y)
+             (when (int64? y)
+                   (or (int32? y) (and (register? x) (int64? y))))))
+         (define rule7
+           (lambda (x y)
+             (and (eq? x '*) (register? x))))
+         (define rule8
+           (lambda (x y)
+             (and (eq? x 'sra) (int64? y))))
+         (define rule9
+           (lambda (x)
+             (not (int64? x))))
+         (define binop32bit
+           (lambda (x y)
+             (and (not (eq? x 'sra)) (int32? y))))
+
+         
+         (define-pass verify-scheme : LverifyScheme (x) -> LverifyScheme ()
+           (Prog : Prog (x) -> Prog ()
+                 [(letrec ([,l* ,[le*]] ...) ,[tl]) x])
+           (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
+                       [(lambda () ,[tl]) x])
+           (Tail : Tail (x) -> Tail ()
+                 [(begin ,[ef] ,[ef*] ... ,[tl1]) x]
+                 [(,triv)
+                  (unless (or (register? triv) (label? triv) (frame-var? triv))
+                      (error who "triv must be a label or variable" triv))])
+           (Effect : Effect (x) -> Effect ()
+                   [(set! ,v ,triv)
+                    (rule3/4 v triv)
+                    (rule5 v triv)
+                    (rule6 v triv)]
+                   [(set! ,v (,op ,triv1 ,triv2))
+                    (rule1 v triv1)
+                    (rule2 triv1 triv2)
+                    (rule3/4 triv1 triv2)
+                    (rule7 op v)
+                    (rule8 op triv2)
+                    (binop32bit op triv2)])))
