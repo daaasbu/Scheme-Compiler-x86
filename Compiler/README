@@ -1,2 +1,12 @@
 All expected tests passed. 
-I worked with Ryan Rozanski and Taylor Weatherly on the entire assignment.
+I worked with Ryan Rozanski, Taylor Weatherly, and Andy Jacobs on the entire assignment.
+
+Special thanks to Tim and Rachel on flatten-program on how to handle the begin line w/ catamorphisms.
+
+Special thanks to Andy for realizing that we weren't checking the range of integers in verify scheme.
+
+Special thanks to Ryan for realizing we weren't using leaq in generate.
+
+ 
+
+
