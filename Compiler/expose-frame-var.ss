@@ -1,3 +1,6 @@
+;;expose-frame-var, goes from LverifyScheme to LexposeFrameVar. Takes our subset of scheme in verify, and updates the frame-vars with the displacements.
+;;Relatively simple pass, that makes use of make-dis-opnd. Doesn't change any other parts of the language beside frame-vars.
+
 (library (Compiler expose-frame-var)
          (export expose-frame-var)
          (import

@@ -1,3 +1,5 @@
+;;verify-scheme, takes our subset of scheme consisting of mainly letrecs, effects,registers,frame-vars, labels and lambda expressions, and goes through a series of tests that targets a certain machine.These tests could change depending on the target of our compiler.  Goes from LverifyScheme to LverifyScheme.
+;;
 
 (library (Compiler verify-scheme)
      (export verify-scheme parse-LverifyScheme)

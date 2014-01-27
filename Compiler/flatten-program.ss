@@ -1,3 +1,6 @@
+;;flatten-program, goes from LexposeFrameVar to LflattenProgram. Replaces begin with the keyword code, breaks up nested begins, places the tails of letrecs
+;;at the front of the program, and uses map to place each label with its block of effects.
+
 (library (Compiler flatten-program)
          (export flatten-program parse-LflattenProgram )
          (import

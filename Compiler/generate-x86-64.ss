@@ -1,3 +1,5 @@
+;;generate-x86-64, goes from LflattenProgram to assembly code. Uses emit-program to give boilerplate code, for-each to process each effect, and emit to place
+;; each line of assembly code. Has the helper bin->assem to translate binary operators to their assembly counterparts.
 (library (Compiler generate-x86-64)
          (export generate-x86-64)
          (import
