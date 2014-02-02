@@ -2,7 +2,7 @@
 ;;Relatively simple pass, that makes use of make-dis-opnd. Doesn't change any other parts of the language beside frame-vars.
 
 (library (Compiler expose-frame-var)
-         (export expose-frame-var)
+         (export expose-frame-var parse-LexposeFrameVar)
          (import
           (chezscheme)
           (source-grammar)
@@ -13,11 +13,11 @@
 
          (define-parser parse-LexposeFrameVar LexposeFrameVar)
 
-         (define-pass expose-frame-var : LverifyScheme (x) -> LexposeFrameVar ()
+         (define-pass expose-frame-var : LfinalizeLocations (x) -> LexposeFrameVar ()
            (definitions
              (define make-frame-var
                (lambda (x)
                  (make-disp-opnd 'rbp (* 8 (frame-var->index x))))))
-           (Var : Var (x) -> Var ()
+           (Loc : Loc (x) -> Loc ()
                 [,fv (make-frame-var fv)]))) 
   

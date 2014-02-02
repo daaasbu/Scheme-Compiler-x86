@@ -11,16 +11,20 @@
 
 (define-parser parse-LflattenProgram LflattenProgram)
          
-(define-pass flatten-program : LexposeFrameVar (x) -> LflattenProgram ()
+(define-pass flatten-program : LexposeBasicBlocks (x) -> LflattenProgram ()
   (Prog : Prog (x) -> Prog ()
         [(letrec ([,l* ,le*] ...) ,tl)
          `(code ,(append (Tail tl) (apply append (map (lambda (x y) (cons x (LambdaExpr y))) l* le*))) ...)]
+        [else (error who "Error")]
         )
   (LambdaExpr : LambdaExpr (x) -> * (c*)
-              [(lambda () ,tl) (Tail tl)])
+              [(lambda () ,tl) (Tail tl)]
+              [else (error who "Error")])
   (Tail : Tail (x) -> * (c*)
         [(,triv) (in-context Code (list `(jump ,triv)))]
         [(begin ,[* c**] ... ,[* c*])
-         (append (apply append c**) c*)])
+         (append (apply append c**) c*)]
+        [else (error who "Error")])
   (Effect : Effect (x) -> * (*c)
-          [(set! ,[v] ,[rhs]) (in-context Code (list `(set! ,v ,rhs)))])))
+          [(set! ,[locrf] ,[rhs]) (in-context Code (list `(set! ,locrf ,rhs)))]
+          [else (error who "Error")])))

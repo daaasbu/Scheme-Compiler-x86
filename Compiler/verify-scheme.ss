@@ -23,61 +23,69 @@
         (same-label? (map extract-suffix ls))))
     (define lookup
       (lambda (x env)
-        (member x env))))
+        (member x env)))
+    (define walk-symbol
+      (lambda (x s)
+        (letrec ((walk
+                  (lambda (y t)
+                    (cond
+                      [(null? t) y]
+                      [(pair? t) (let ([check1 (caar t)] [check2 (cdar t)])
+                                   (if (eqv? y check1)
+                                       (if (or (register? check2) (frame-var? check2)) check2 (walk check2 s))
+                                       (walk y (cdr t))))]))))
+        (walk x s)))))
   
   (Prog : Prog (x) -> Prog ()
         [(letrec ([,l* ,[le*]] ...) ,bd)
-         (unless (s-ls l*) (error who "Duplicate label-suffix" l*))
-         (Body bd l*)
-         x])
-
-  ;(LambdaExpr : LambdaExpr (x env) -> LambdaExpr ()
-   ;           [(lambda () ,bd)
-    ;          (Body bd env)
-     ;          x])
-         
+         (unless (s-ls l*) (error who "Duplicate label-suffix"))
+         `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x l*)) le*)] ...) ,(Body bd l*))])
+  (LambdaExpr : LambdaExpr (x env) -> LambdaExpr ()
+              [(lambda () ,bd) `(lambda () ,(Body bd env))])
+       
   (Body : Body (x env) -> Body ()
-        [(locate ([,uv* ,[locrf*]] ...) ,tl)
-         (Tail tl (append uv* env))
+        [(locate ([,uv* ,locrf*] ...) ,tl)
          (unless (s-ls uv*) (error who "Duplicate unique-var suffix" uv*))
-         x]) 
+         `(locate ([,uv* ,locrf*] ...) ,(Tail tl (append uv* env) (map cons uv* locrf*)))]) 
 
-  (Pred : Pred (x) -> Pred ()
+  (Pred : Pred (x env env2) -> Pred ()
         [(true) x]
         [(false) x]
         [(,relop ,triv1 ,triv2)
+         (if (or (label? triv1) (uvar? triv1))
+             (unless (lookup triv1 env) (error who "not in env")))
+         (if (or (label? triv2) (uvar? triv2))
+             (unless (lookup triv2 env) (error who "not in env")))
          (unless (or (not (frame-var? triv1)) (not (frame-var? triv2))) (error who "Cannot both be frames" triv1 triv2))
-         (if (and (integer? triv1) (not (frame-var? triv1))) (unless (int32? triv1) (error who "Must be in certain range" triv1 triv2)))
-         (if (and (integer? triv2) (not (frame-var? triv2))) (unless (int32? triv2) (error who "Must be in certain range" triv1 triv2))) x])
+         (if (integer? triv1) (unless (int32? triv1) (error who "Must be in certain range" triv1 triv2)))
+         (if (integer? triv2) (unless (int32? triv2) (error who "Must be in certain range" triv1 triv2)))
+         (if (and (integer? triv1) (register? triv2)) (error who "int32 must be the first arg"))
+         (if (and (uvar? triv2) (uvar? triv1) (equal? (walk-symbol triv1 env2) (walk-symbol triv2 env2))) (error who "cannot both be frames")) x]
+        [(begin ,ef* ... ,pred) `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Pred pred env env2))]
+        [(if ,pred1 ,pred2 ,pred3) (Pred pred1 env env2) (Pred pred2 env env2) (Pred pred3 env env2) x])
 
-  (Tail : Tail (x env) -> Tail ()
+  (Tail : Tail (x env env2) -> Tail ()
         [(,triv) 
          (unless (or (register? triv) (label? triv) (frame-var? triv)) (error who "Invalid Triv in Tail position" triv))
-         (if (label? triv) (unless (lookup triv env) (error who "unbound label")))]
-        [(begin ,[ef*] ... ,tl)
-         (Tail tl env)
-         x]
-        [(if ,[pred] ,tl1 ,tl2)
-         (Tail tl1 env)
-         (Tail tl2 env)
-         x])
+         (if (or (uvar? triv) (label? triv)) (unless (lookup triv env) (error who "unbound label"))) x]
+        [(begin ,ef* ... ,tl)
+          `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Tail tl env env2))]
+        [(if ,pred ,tl1 ,tl2)
+         (Pred pred env env2) (Tail tl1 env env2) (Tail tl2 env env2) x])
 
-  (Effect : Effect (x) -> Effect ()
-          ;[(if ,pred ,ef0 ,ef1)
-           ;(Effect ef0)
-           ;(Effect ef1)
-           ;x]
-          ;[(begin ,ef* ... ,ef)
-          ; (Effect ef*)
-          ; (Effect ef)
-          ; x]
+  (Effect : Effect (x env env2) -> Effect ()
           [(set! ,v ,triv)
+           (if (uvar? v) (unless (lookup v env) (error who "not in env")))
+           (if (uvar? triv) (unless (lookup triv env) (error who "not in env"0)))
            (if (and (frame-var? v) (frame-var? triv))
                (error who "Cannot both be frames" v triv))
            (if (label? triv) (unless (register? v)(error who "Must be register" v)))
            (if (or (int32? triv) (int64? triv))(unless (or (int32? triv) (and (register? v) (int64? triv)))(error who "Needs to be in certain range" triv)))
            x]
-          [(set! ,v (,op ,triv1 ,triv2)) 
+          [(set! ,v (,op ,triv1 ,triv2))
+           (if (uvar? v) (unless (lookup v env) (error who "not in env")))
+           (if (uvar? triv1) (unless (lookup triv1 env) (error who "not in env")))
+           (if (uvar? triv2) (unless (lookup triv2 env) (error who "not in env")))
            (unless (eqv? v triv1) (error who "Must be equal" v triv1))
            (if (label? triv1)(error who "labels cannot be used in binops" triv1)
                (if (label? triv2) (error who "labels cannot be used in binops" triv2)))
@@ -90,9 +98,7 @@
            (unless (or (register? triv2) (frame-var? triv2) (label? triv2) (uvar? triv2))
              (unless (int32? triv2)
                (error who "out of range" triv2)))
-           x])
-
-  ;(Var : Var (x) -> Var ()
-   ;    [,r (unless (or (register? r) (frame-var? r)) (error who "Invalid register" r))
-   ;        x])
-  ))
+           x]
+          [(if ,pred ,ef1 ,ef2) (Pred pred env env2) (Effect ef1 env env2) (Effect ef2 env env2) x]
+          [(begin ,ef* ... ,ef1) `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Effect ef1 env env2))]
+          [(nop) x])))

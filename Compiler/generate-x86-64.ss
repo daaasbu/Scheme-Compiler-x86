@@ -26,11 +26,11 @@
   (Code : Code (x) -> * ()
         [(jump ,triv) (emit-jump 'jmp triv)]
         [,l (emit-label l)]
-        [(set! ,v ,l) (emit 'leaq l v)]
-        [(set! ,v ,i) (emit 'movq i v)]
-        [(set! ,v1 ,v2) (emit 'movq v2 v1)]
-        [(set! ,v (,op ,v1 ,i)) (emit (bin->assem op) i v1)]
-        [(set! ,v (,op ,v1 ,v2)) (emit (bin->assem op) v2 v1)]
+        [(set! ,locrf ,l) (emit 'leaq l locrf)]
+        [(set! ,locrf ,i) (emit 'movq i locrf)]
+        [(set! ,locrf1 ,locrf2) (emit 'movq locrf2 locrf1)]
+        [(set! ,locrf (,op ,locrf1 ,i)) (emit (bin->assem op) i locrf1)]
+        [(set! ,locrf (,op ,locrf1 ,locrf2)) (emit (bin->assem op) locrf2 locrf1)]
         [else (error who "Failure in code")])))
 
 

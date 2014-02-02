@@ -10,11 +10,11 @@
     (Framework helpers)
     ;; Load your passes from the files you wrote them in:
     (Compiler verify-scheme)
-    ;(Compiler finalize-locations)
-    ;(Compiler expose-frame-var)
-    ;(Compiler expose-basic-blocks)
-    ;(Compiler flatten-program)
-    ;(Compiler generate-x86-64)
+    (Compiler finalize-locations)
+    (Compiler expose-frame-var)
+    (Compiler expose-basic-blocks)
+    (Compiler flatten-program)
+    (Compiler generate-x86-64)
 )
 
 ;; Given a thunk that generates assembly code, this will compile the
@@ -31,11 +31,11 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper pass->unparser parse-LverifyScheme)
   (verify-scheme)
-  ;(finalize-locations)
-  ;(expose-frame-var)
-  ;(expose-basic-blocks)
-  ;(flatten-program)
-  ;(generate-x86-64 assemble)
+  (finalize-locations)
+  (expose-frame-var)
+  (expose-basic-blocks)
+  (flatten-program)
+  (generate-x86-64 assemble)
 )
 ) ;; End library
 
