@@ -24,17 +24,17 @@
     (define lookup
       (lambda (x env)
         (member x env)))
-    (define walk-symbol
-      (lambda (x s)
-        (letrec ((walk
-                  (lambda (y t)
-                    (cond
-                      [(null? t) y]
-                      [(pair? t) (let ([check1 (caar t)] [check2 (cdar t)])
-                                   (if (eqv? y check1)
-                                       (if (or (register? check2) (frame-var? check2)) check2 (walk check2 s))
-                                       (walk y (cdr t))))]))))
-        (walk x s)))))
+         (define walk-symbol
+           (lambda (sym ls)
+             (letrec ((walk
+                      (lambda (y t)
+                        (cond
+                         [(null? t) y]
+                         [(pair? t) (let ([c1 (caar t)] [c2 (cdar t)])
+                                      (if (eqv? y c1)
+                                          (if (or (register? c2) (frame-var? c2)) c2 (walk c2 ls))
+                                          (walk y (cdr t))))]))))
+               (walk sym ls)))))
   
   (Prog : Prog (x) -> Prog ()
         [(letrec ([,l* ,[le*]] ...) ,bd)
@@ -53,9 +53,9 @@
         [(false) x]
         [(,relop ,triv1 ,triv2)
          (if (or (label? triv1) (uvar? triv1))
-             (unless (lookup triv1 env) (error who "not in env")))
+             (unless (lookup triv1 env) (error who "label not in env")))
          (if (or (label? triv2) (uvar? triv2))
-             (unless (lookup triv2 env) (error who "not in env")))
+             (unless (lookup triv2 env) (error who "label not in env")))
          (unless (or (not (frame-var? triv1)) (not (frame-var? triv2))) (error who "Cannot both be frames" triv1 triv2))
          (if (integer? triv1) (unless (int32? triv1) (error who "Must be in certain range" triv1 triv2)))
          (if (integer? triv2) (unless (int32? triv2) (error who "Must be in certain range" triv1 triv2)))
@@ -75,17 +75,17 @@
 
   (Effect : Effect (x env env2) -> Effect ()
           [(set! ,v ,triv)
-           (if (uvar? v) (unless (lookup v env) (error who "not in env")))
-           (if (uvar? triv) (unless (lookup triv env) (error who "not in env"0)))
+           (if (uvar? v) (unless (lookup v env) (error who "uvar not in env")))
+           (if (uvar? triv) (unless (lookup triv env) (error who "uvar not in env")))
            (if (and (frame-var? v) (frame-var? triv))
                (error who "Cannot both be frames" v triv))
            (if (label? triv) (unless (register? v)(error who "Must be register" v)))
            (if (or (int32? triv) (int64? triv))(unless (or (int32? triv) (and (register? v) (int64? triv)))(error who "Needs to be in certain range" triv)))
            x]
           [(set! ,v (,op ,triv1 ,triv2))
-           (if (uvar? v) (unless (lookup v env) (error who "not in env")))
-           (if (uvar? triv1) (unless (lookup triv1 env) (error who "not in env")))
-           (if (uvar? triv2) (unless (lookup triv2 env) (error who "not in env")))
+           (if (uvar? v) (unless (lookup v env) (error who "uvar not in env")))
+           (if (uvar? triv1) (unless (lookup triv1 env) (error who "uvar not in env")))
+           (if (uvar? triv2) (unless (lookup triv2 env) (error who "uvar not in env")))
            (unless (eqv? v triv1) (error who "Must be equal" v triv1))
            (if (label? triv1)(error who "labels cannot be used in binops" triv1)
                (if (label? triv2) (error who "labels cannot be used in binops" triv2)))

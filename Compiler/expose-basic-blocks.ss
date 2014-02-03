@@ -1,3 +1,6 @@
+;;Expose-basic-blocks. Goes from LexposeFrameVar to LexposeBasicBlocks. Greatly simplifies if expressions and begins. All alternate and conseq branches of if-;;statements are labels that point to the next stage of execution of the code. We get rid of the pred processor, and leave relops in if's. All consecutive
+;;set!'s are bundled into a basic block, (lambda () with a begin block). 
+
 
 (library (Compiler expose-basic-blocks)
          (export expose-basic-blocks)
@@ -24,8 +27,8 @@
             (Prog : Prog (x) -> * ()
                   [(letrec ([,l* (lambda () ,tl1)] ...) ,tl2)
                    (let*-values ([(bnds* tail*) (Tail tl1)]
-                                 [(bnd tail) (Tail tl2)])
-                     x)]
+                                 [(bnd tail) (Tail tl2)]) x)]
+                     
                   [else "blah"])
             (Tail : Tail (x) -> * (bb b*)
                   [(if ,pred ,tl1 ,tl2) x]
