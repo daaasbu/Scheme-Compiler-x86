@@ -73,7 +73,7 @@
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-                                                (display conflict-table)
+                                                ;(display conflict-table)
                                                 
                                               `(locals (,uv* ...) (register-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
@@ -145,8 +145,9 @@
                                                      ;((register? v) (for-each
                                                      ;                (lambda (x) (if (uvar? x)
                                                      ;   (set! conflict-table (update-table x (list v) conflict-table))))
-                                                     ;                live-ls)))
+                                                     ;                live-ls))
                                                      )
+                                                     
                                                     (let* ([a (Triv triv2)]
                                                            [b (Triv triv1)])
                                                       (if (frame-var? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))

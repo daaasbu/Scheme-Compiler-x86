@@ -51,13 +51,12 @@
 
              (define remove-var
                (lambda (var c-table)
-                 (let* ([c-table-with-nulls (map
-                                             (lambda (conflicts)
-                                               (if (eqv? (car conflicts) var)
-                                                   '()
-                                                   (remv var conflicts)))
-                                             c-table)])
-                   (remv '() c-table-with-nulls))))
+                 (map
+                  (lambda (conflicts)
+                    (if (eqv? (car conflicts) var)
+                        conflicts
+                        (remv var conflicts)))
+                  c-table)))
              (define make-assignment
                (lambda (var reg)
                  `[,var ,reg]))
@@ -85,8 +84,13 @@
                             [var-conflicts (difference conflicts reg-conflicts)]
                             [var-reg-conflicts (get-reg-conflicts var-conflicts assignments)]
                             [total-reg-conflicts (union reg-conflicts var-reg-conflicts)]
-                            
                             [free-regs (difference registers total-reg-conflicts)])
+                       ;(display "pick:") (display pick) (newline)
+                       ;(display "c-table-reduced:") 
+                    ;   (display "c-table:" )(display c-table-reduced) (newline)
+                     ;   (display "conflicts:") (display conflicts) (newline)
+                        
+                      ; (display "reg-conflicts:") (display reg-conflicts) (newline)
                        
                        (cond
                          [(null? vars-reduced) assignments]
@@ -95,7 +99,9 @@
 
              (define choose-registers-initialize
                (lambda (vars c-table)
-                 (choose-registers vars c-table '())))
+                 ;(display c-table)
+                 (choose-registers vars c-table '())
+                 ))
                        
 
              
@@ -104,10 +110,16 @@
          
 
 (Body : Body (x) -> Body ()
-      [(locals (,uv* ...) (register-conflict ,cfgraph ,tl)) (display cfgraph)  (if (and (null? cfgraph) (null? uv*)) x
-                                                                                   (let ([assignments (choose-registers-initialize uv* cfgraph)])
-                                                                                     (void)
-                                                                                     )) ]
+      
+      [(locals (,uv* ...) (register-conflict ,cfgraph ,[tl]))   (if (and (null? cfgraph) (null? uv*)) `(locate () ,tl)
+                                                                                   (let* ([assignments (choose-registers-initialize uv* cfgraph)]
+                                                                                          [uvar* (map car assignments)]
+                                                                                          [reg* (map cadr assignments)])
+                                     ;                                                (display assignments)
+                                                                                     `(locate ([,uvar* ,reg*] ...) ,tl))
+                                                                                  
+                                                                                   
+                                                                                     )]
       )
 )
 ) ;End Library
