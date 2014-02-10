@@ -115,7 +115,7 @@
                                                                                    (let* ([assignments (choose-registers-initialize uv* cfgraph)]
                                                                                           [uvar* (map car assignments)]
                                                                                           [reg* (map cadr assignments)])
-                                                                                     (display assignments)
+                                                                               ;      (display assignments)
                                                                                      `(locate ([,uvar* ,reg*] ...) ,tl))
                                                                                   
                                                                                    
