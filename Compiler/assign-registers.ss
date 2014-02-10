@@ -93,7 +93,7 @@
                       ; (display "reg-conflicts:") (display reg-conflicts) (newline)
                        
                        (cond
-                         [(null? vars-reduced) assignments]
+                         [(null? vars-reduced) (cons (make-assignment pick (car free-regs)) assignments)]
                          [(null? free-regs) (error 'fuck "no more free registers")]
                          [else (choose-registers vars-reduced c-table-reduced (cons (make-assignment pick (car free-regs)) assignments))]))))
 
@@ -115,7 +115,7 @@
                                                                                    (let* ([assignments (choose-registers-initialize uv* cfgraph)]
                                                                                           [uvar* (map car assignments)]
                                                                                           [reg* (map cadr assignments)])
-                                     ;                                                (display assignments)
+                                                                                     (display assignments)
                                                                                      `(locate ([,uvar* ,reg*] ...) ,tl))
                                                                                   
                                                                                    
