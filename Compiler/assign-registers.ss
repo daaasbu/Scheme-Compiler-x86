@@ -95,7 +95,7 @@
                        (cond
                          [(null? vars-reduced) (cons (make-assignment pick (car free-regs)) assignments)]
                          [(null? free-regs) (error 'fuck "no more free registers")]
-                         [else (choose-registers vars-reduced c-table-reduced (cons (make-assignment pick (car free-regs)) assignments))]))))
+                         [else (choose-registers vars-reduced c-table-reduced (cons (make-assignment pick (list-ref free-regs (random (length free-regs)))) assignments))]))))
 
              (define choose-registers-initialize
                (lambda (vars c-table)
