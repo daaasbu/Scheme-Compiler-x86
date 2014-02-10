@@ -93,7 +93,7 @@
                       ; (display "reg-conflicts:") (display reg-conflicts) (newline)
                        
                        (cond
-                         [(null? vars-reduced) (cons (make-assignment pick (car free-regs)) assignments)]
+                         [(null? vars-reduced) (cons (make-assignment pick (list-ref free-regs (random (length free-regs)))) assignments)]
                          [(null? free-regs) (error 'fuck "no more free registers")]
                          [else (choose-registers vars-reduced c-table-reduced (cons (make-assignment pick (list-ref free-regs (random (length free-regs)))) assignments))]))))
 
