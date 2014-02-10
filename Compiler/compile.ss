@@ -10,7 +10,7 @@
     (Framework helpers)
     ;; Load your passes from the files you wrote them in:
     (Compiler verify-scheme)
-    ;(Compiler uncover-register-conflict)
+    (Compiler uncover-register-conflict)
     ;(Compiler assign-registers)
     ;(Compiler discard-call-live)
     ;(Compiler finalize-locations)
@@ -34,7 +34,7 @@
 
 (define-compiler (p423-compile p423-step pass->wrapper pass->unparser parse-LverifyScheme)
   (verify-scheme)
-  ;(uncover-register-conflict)
+  (uncover-register-conflict)
   ;(assign-registers)
   ;(discard-call-live)
   ;(finalize-locations)
