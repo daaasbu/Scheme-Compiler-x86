@@ -40,7 +40,6 @@
                    (length conflicts))))
 
 
-
              (define get-lowest-degree
                (lambda (conflicts* c-table)
                  (car (sort (lambda (x y)
@@ -48,6 +47,17 @@
                                      [con-total-y (conflict-total y c-table)])
                                 (< con-total-x con-total-y)))
                             conflicts*))))
+
+             (define order-by-highest-degree
+               (lambda (conflicts* c-table)
+                 (car (sort (lambda (x y)
+                              (let* ([con-total-x (conflict-total x c-table)]
+                                     [con-total-y (conflict-total y c-table)])
+                                (> con-total-x con-total-y)))
+                            conflicts*))))
+
+             
+             
 
              (define remove-var
                (lambda (var c-table)
@@ -62,12 +72,15 @@
                  `[,var ,reg]))
 
              (define choose-registers
-               (lambda (vars c-table assignments)
-                 (let* ([min (get-lowest-degree vars c-table)]
+               (lambda (vars c-table-reduced c-table assignments)
+                 (let* ([min (order-by-highest-degree vars c-table)]
                         [vars-reduced (remv min vars)]
                         [c-table-reduced (remove-var min c-table)])
+                   ;(display "c-table initial:") (newline) (display c-table)
+                   ;(newline) (display "pick: ") (newline) (display min)
+                   ;(newline) (display "c-table-reduced, initial: ") (newline) (display c-table-reduced) (newline)
                  
-                 (choose-registers-helper min vars-reduced c-table-reduced assignments))))
+                 (choose-registers-helper min vars-reduced c-table-reduced c-table assignments))))
 
 ;;assignments is a list of lists, want to find all the registers that are in use by conflicted vars.
              (define get-reg-conflicts
@@ -78,30 +91,48 @@
                      [else (cons (cadr (assq (car var-conflicts) assignments)) (get-reg-conflicts (cdr var-conflicts) assignments))])))
 
              (define choose-registers-helper
-                   (lambda (pick vars-reduced c-table-reduced assignments)
-                     (let* ([conflicts (get-conflicts pick c-table-reduced)]
+                   (lambda (pick vars-reduced c-table-reduced c-table assignments)
+                     (let* ([conflicts (get-conflicts pick c-table)]
                             [reg-conflicts (intersection conflicts registers)]
                             [var-conflicts (difference conflicts reg-conflicts)]
                             [var-reg-conflicts (get-reg-conflicts var-conflicts assignments)]
                             [total-reg-conflicts (union reg-conflicts var-reg-conflicts)]
                             [free-regs (difference registers total-reg-conflicts)])
-                       ;(display "pick:") (display pick) (newline)
-                       ;(display "c-table-reduced:") 
-                    ;   (display "c-table:" )(display c-table-reduced) (newline)
-                     ;   (display "conflicts:") (display conflicts) (newline)
-                        
-                      ; (display "reg-conflicts:") (display reg-conflicts) (newline)
+                       ;(display "c-table-reduced" )
+                       ;(display c-table-reduced) (newline)
+                       ;(display "pick: ")
+                       ;(display pick) (newline)
+                       ;(display "reg-conflicts ")
+                       ;(display reg-conflicts) (newline)
+                       ;(display "var-conflicts: ")
+                       ;(display var-conflicts) (newline)
+                       ;(display "var-reg-conflicts: ")
+                      ; (display var-reg-conflicts) (newline)
+                     ;  (display "total-reg-conflicts: ")
+                    ;   (display total-reg-conflicts) (newline)
+                   ;    (display "free-regs: ")
+                  ;     (display free-regs) (newline)
+                 ;      (display "I HAVE LOOPED") (newline)
+
+                                        ;(display "pick:") (display pick) (newline)
+                       
+                       
+                                        ;  (display "c-table reduced:" )(display c-table-reduced) (newline)
+                                        ;   (display "conflicts:") (display conflicts) (newline)
+                       
+                                        ; (display "reg-conflicts:") (display reg-conflicts) (newline)
                        
                        (cond
-                         [(null? vars-reduced) (cons (make-assignment pick (list-ref free-regs (random (length free-regs)))) assignments)]
-                         [(null? free-regs) (error 'fuck "no more free registers")]
-                         [else (choose-registers vars-reduced c-table-reduced (cons (make-assignment pick (list-ref free-regs (random (length free-regs)))) assignments))]))))
+                         [(null? vars-reduced) (cons (make-assignment pick (car free-regs)) assignments)]
+                         [(null? free-regs) (error 'blah "no more free registers")]
+                         [else (choose-registers vars-reduced c-table-reduced c-table (cons (make-assignment pick (car free-regs)) assignments))]))))
 
              (define choose-registers-initialize
                (lambda (vars c-table)
                  ;(display c-table)
-                 (choose-registers vars c-table '())
+                 (choose-registers vars c-table c-table '())
                  ))
+             
                        
 
              
