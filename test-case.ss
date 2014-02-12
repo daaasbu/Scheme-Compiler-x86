@@ -29,3 +29,14 @@
              (if (if (= rax 10) (nop) (= rbx 5))
                  (set! rax 3))
              (r15))))
+
+;;Week 5
+(letrec()
+   (locals
+     (x.1 y.1)
+     (begin
+       (set! rax 10)
+       (set! y.1 3)
+       (set! x.1 rax)
+       (set! rax (- rax x.1))
+       (r15 rbp rax))))
