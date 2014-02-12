@@ -31,12 +31,12 @@
              (r15))))
 
 ;;Week 5
-(letrec()
+(letrec ()
    (locals
      (x.1 y.1)
      (begin
-       (set! rax 10)
+       (set! rdx 4)
        (set! y.1 3)
-       (set! x.1 rax)
-       (set! rax (- rax x.1))
-       (r15 rbp rax))))
+       (set! x.1 rdx)
+       (set! rdx (+ rdx y.1))
+       (r15 rdx rbp))))
