@@ -82,11 +82,12 @@
            (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
                        [(lambda () ,[bd]) `(lambda () ,bd)]
                        [else (error who "something went wrong - LambdaExpr")])
+
            (Body : Body (x) -> Body ()
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-                                               ;(newline) (display "conflict table: ") (display conflict-table) (newline)
+                                               (newline) (display "conflict table: ") (display conflict-table) (newline)
                                                 
                                               `(locals (,uv* ...) (frame-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
