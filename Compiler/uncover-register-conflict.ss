@@ -63,15 +63,19 @@
                    ((or (label? (car ls)) (frame-var? (car ls))) (remove-frame-var (cdr ls)))
                    (else (set-cons (car ls) (remove-frame-var (cdr ls)))))))
 
-             (define map*
-               (lambda (proc ls)
-                 (cond
-                   ((null? ls) '())
-                   (else (cons (proc (car ls)) (map* proc (cdr ls)))))))
 
              (define Ef*
                (lambda (ef*)
-                 (reverse (map* Effect (reverse ef*)))))
+		 (reverse (map* Effect (reverse ef*)))))
+		 
+	     (define map*
+	       (lambda (proc ls)
+		 (cond
+		  ((null? ls) '())
+		  (else (let ((cell (proc (car ls))))
+			  (cons cell (map* proc (cdr ls))))))))
+
+             
 
 
              )
@@ -86,7 +90,7 @@
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-                                               ;(newline) (display "conflict table: ") (display conflict-table) (newline)
+                                               (newline) (display "conflict table: ") (display conflict-table) (newline)
                                                 
                                               `(locals (,uv* ...) (register-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
