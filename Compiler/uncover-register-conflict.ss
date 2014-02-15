@@ -9,7 +9,7 @@
 
          (define-parser parse-LuncoverRegisterConflict LuncoverRegisterConflict)
 
-         (define-pass uncover-register-conflict : LverifyScheme (x) -> LuncoverRegisterConflict ()
+         (define-pass uncover-register-conflict : LselectInstructions (x) -> LuncoverRegisterConflict ()
            (definitions
 
              (define init-conflict-table
@@ -82,6 +82,23 @@
            (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
                        [(lambda () ,[bd]) `(lambda () ,bd)]
                        [else (error who "something went wrong - LambdaExpr")])
+	   
+			 (Body : Body (x) -> Body ()
+			       [(locals (,uv1* ...) 
+						(ulocals (,uv2* ...) 
+							 (locate ([,uv3* ,locrf*] ...)
+								 (frame-conflict ,cfgraph ,tl))))
+				(begin
+                                              (set! conflict-table (init-conflict-table uv*))
+                                              (let ([a (Tail tl)])
+				`(locals (,uv1* ...)
+					 (ulocals (,uv1* ... )
+						  (locate ([,uv3* ,locrf*] ...)
+							  (frame-conflict ,cfgraph
+									  (register-conflict ,conflict-table ,a)))))))]
+
+			       [(locate ((,uv** ,locrf*) ...) ,tl) `(locate ((,uv** ,locrf*) ...) ,tl)])
+
            (Body : Body (x) -> Body ()
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))

@@ -67,7 +67,8 @@
                (lambda (proc ls)
                  (cond
                    ((null? ls) '())
-                   (else (cons (proc (car ls)) (map* proc (cdr ls)))))))
+                   (else (let ((cell (proc (car ls)))) 
+			   (cons cell (map* proc (cdr ls))))))))
 
              (define Ef*
                (lambda (ef*)
