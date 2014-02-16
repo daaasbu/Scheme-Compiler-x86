@@ -1,3 +1,14 @@
+
+(library (Compiler everybody-home?)
+         (export everybody-home? #;parse-LverifyScheme)
+         (import
+          (chezscheme)
+          (source-grammar)
+          (Framework nanopass)
+          (Framework helpers))
+
+
+
 (define-pass everybody-home? : LassignRegisters (x) -> * ()
   (home? : Body (x) -> * ()
 	 [(locals (,uv* ...) ,ubd) #f]
@@ -5,4 +16,4 @@
   (Prog : Prog (x) -> * ()
 	[(letrec ([,l* (lambda () ,bd*)] ...) ,bd)
 	 (andmap home? (cons bd bd*))]
-	[else (error who "Invalid program shape ~s" x)]))
+	[else (error who "EBH?")])))

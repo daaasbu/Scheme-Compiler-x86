@@ -1,5 +1,5 @@
-(library (Compiler assign-registers)
-         (export assign-registers parse-LassignRegisters)
+(library (Compiler assign-frame)
+         (export assign-frame parse-LassignFrame)
          (import
           (chezscheme)
           (source-grammar)
@@ -23,9 +23,9 @@
 	 (let ([total (conflict-total var c-table)])
 	 (< total k))))
 	 |#
-         (define-parser parse-LassignRegisters LassignRegisters)
+         (define-parser parse-LassignFrame LassignFrame)
 
-         (define-pass assign-registers : LuncoverRegisterConflict (x) -> LassignRegisters ()
+         (define-pass assign-frame : LassignRegisters (x) -> LassignFrame ()
            (definitions
              (define k (length registers))
 
@@ -60,16 +60,12 @@
 
 	     (define pick-variable
 	       (lambda (conflicts* c-table)
-		 (let ((order
-			(order-by-highest-degree (filter (lambda (x) (not (unspillable? x))) conflicts*) c-table)))
-		       (cond
-			[(null? order) (car (order-by-highest-degree conflicts* c-table))]
-			[else (car order)]))))
+		 (car (order-by-highest-degree conflicts* c-table))))
 
              (define unspillable?
 	       (lambda (v)
 		 (equal? "UNSP" (extract-root v))))
-             
+              
 
              (define remove-var
                (lambda (var c-table)
@@ -80,49 +76,48 @@
                         (remv var conflicts)))
                   c-table)))
              (define make-assignment
-               (lambda (var reg)
-                 `[,var ,reg]))
+               (lambda (var fv)
+                 `[,var ,fv]))
 
-             (define choose-registers
+             (define choose-fv
                (lambda (vars c-table-reduced c-table assignments)
                  (let* ([min (pick-variable vars c-table-reduced)]
                         [vars-reduced (remv min vars)]
                         [c-table-reduced (remove-var min c-table)])
-					;(display "c-table initial:") (newline) (display c-table)
-					;(newline) (display "pick: ") (newline) (display min)
-					;(newline) (display "c-table-reduced, initial: ") (newline) (display c-table-reduced) (newline)
-		   
-		   (choose-registers-helper min vars-reduced c-table-reduced c-table assignments))))
+		   (choose-fv-helper min vars-reduced c-table-reduced c-table assignments))))
 
-	     ;;assignments is a list of lists, want to find all the registers that are in use by conflicted vars.
-             (define get-reg-conflicts
+	    
+             (define get-fv-conflicts
                (lambda (var-conflicts assignments)
 		 (cond
 		  [(null? var-conflicts) '()]
-		  [(eqv? #f (assq (car var-conflicts) assignments)) (get-reg-conflicts (cdr var-conflicts) assignments)]
-		  [else(cons (cadr (assq (car var-conflicts) assignments)) (get-reg-conflicts (cdr var-conflicts) assignments))])))
+		  [(eqv? #f (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments)]
+		  [else(cons (cadr (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments))])))
 
-             (define choose-registers-helper
+	     (define find-free-fv
+	       (lambda (total-fv-conflicts n)
+		 (let ((fv (index->frame-var n)))
+		   (cond
+		    [(memv fv total-fv-conflicts) (find-free-fv total-fv-conflicts (add1 n))]
+		    [else fv]))))
+		 
+		 
+
+             (define choose-fv-helper
 	       (lambda (pick vars-reduced c-table-reduced c-table assignments)
 		 (let* ([conflicts (get-conflicts pick c-table)]
-			[reg-conflicts (intersection conflicts registers)]
-			[var-conflicts (difference conflicts reg-conflicts)]
-			[var-reg-conflicts (get-reg-conflicts var-conflicts assignments)]
-			[total-reg-conflicts (union reg-conflicts var-reg-conflicts)]
-			[free-regs (difference registers total-reg-conflicts)])
-		   
-		   (cond
-		    [(and (null? free-regs) (null? vars-reduced)) 
-		     (begin (set! spill-list (cons pick spill-list))  assignments)]
-									 
-		    [(null? free-regs) (begin (set! spill-list (cons pick spill-list))
-					      (choose-registers vars-reduced c-table-reduced c-table assignments))]
-		    [(null? vars-reduced) (cons (make-assignment pick (car free-regs)) assignments)]
-		    [else (choose-registers vars-reduced c-table-reduced c-table (cons (make-assignment pick (car free-regs)) assignments))]))))
-             (define choose-registers-initialize
+			[fv-conflicts (filter (lambda (x) (not (frame-var? x))) conflicts)]
+			[var-conflicts (difference conflicts fv-conflicts)]
+			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
+			[total-fv-conflicts (union fv-conflicts var-fv-conflicts)])
+		   (cond						 
+		    [(null? vars-reduced) (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments)]
+		    [else (choose-fv vars-reduced c-table-reduced c-table (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments))]))))
+             
+	     (define choose-fv-initialize
                (lambda (vars c-table)
 					;(display c-table)
-                 (choose-registers vars c-table c-table '())
+                 (choose-fv vars c-table c-table '())
                  ))
              (define spill-list '())
 	     
@@ -143,23 +138,21 @@
 |#		 	   
 	   (Body : Body (x) -> Body ()
 		 [(locals (,uv1* ...) 
-			  (ulocals (,uv2* ...) 
-				   (locate ([,uv3* ,locrf*] ...)
-					   (frame-conflict ,cfgraph1
-							   (register-conflict ,cfgraph2 ,[tl])))))
-		   (if (and (null? cfgraph2) (null? uv1*)) `(locate () ,tl)
-		 
-		  (let([assignments (choose-registers-initialize (append uv1* uv2*) cfgraph2)])
-		    (if (null? spill-list)
-			     (let* ([uvar* (map car assignments)]
-				    [reg* (map cadr assignments)])
-			        `(locate ([,uvar* ,reg*] ...) ,tl))
-		
-			     `(locals (,(difference uv1* spill-list) ...)
-				      (ulocals (,uv2* ...)
-					       (spills (,spill-list ...)
-						       (locate ([,uv3* ,locrf*] ...)
-							       (frame-conflict ,cfgraph1 ,tl))))))))]
+			  (ulocals (,uv2* ...)
+				   (spills (,uv4* ...)
+					   (locate ([,uv3* ,locrf*] ...)
+						   (frame-conflict ,cfgraph1 ,[tl])))))
+		  (if (and (null? cfgraph1) (null? uv1*)) `(locals ()
+								   (ulocals (,uv2* ...)
+									    (locate () (frame-conflict ,cfgraph1 ,tl))))
+		      
+		      (let ([assignments (choose-fv-initialize uv4* cfgraph1)])
+			(let* ([uvar* (map car assignments)]
+			       [reg* (map cadr assignments)])
+			  `(locals (,uv1* ...)
+				   (ulocals (,uv2* ...)
+				   (locate ([,(append uvar* uv3*) ,(append reg* locrf*)] ...)
+					   (frame-conflict ,cfgraph1 ,tl)))))))]
 		 
 		 [(locate ((,uv** ,locrf*) ...) ,[tl])  `(locate ((,uv** ,locrf*) ...) ,tl)]
 		 [else (error who "Body")]
@@ -168,3 +161,20 @@
 		 )
 	   )
 	 ) ;End Library
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
