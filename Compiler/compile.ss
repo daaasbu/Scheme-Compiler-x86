@@ -19,12 +19,12 @@
 	  (Compiler  assign-frame)
 	  (Compiler finalize-frame-locations)
 	  (Compiler discard-call-live)
-;	  (Compiler finalize-locations)
-;	  (Compiler expose-frame-var)
-;	  (Compiler expose-basic-blocks)
-;	  (Compiler flatten-program)
-;	  (Compiler generate-x86-64 assemble)
-) 
+	  (Compiler finalize-locations)
+	  (Compiler expose-frame-var)
+	  (Compiler expose-basic-blocks)
+	  (Compiler flatten-program)
+	  (Compiler generate-x86-64)
+)
 
 	 ;; Given a thunk that generates assembly code, this will compile the
 
@@ -50,12 +50,12 @@
 	    (assign-frame)
 	    (finalize-frame-locations))
 	   (discard-call-live)
-;	   (finalize-locations)
-;	   (expose-frame-var)
-;	   (expose-basic-blocks)
-;	   (flatten-program)
-;	   (generate-x86-64 assemble)
-) 
+	   (finalize-locations)
+	   (expose-frame-var)
+	   (expose-basic-blocks)
+	   (flatten-program)
+	   (generate-x86-64 assemble))
 
-	 ) ;; End library
+
+	) ;; End library
 
