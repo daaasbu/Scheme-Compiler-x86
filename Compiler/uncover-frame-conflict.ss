@@ -88,7 +88,7 @@
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-                                               (newline) (display "conflict table: ") (display conflict-table) (newline)
+;                                               (newline) (display "conflict table: ") (display conflict-table) (newline)
                                                 
                                               `(locals (,uv* ...) (frame-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
@@ -132,8 +132,8 @@
                    [(set! ,v ,triv) (begin
                                       (set! live-ls (remove v live-ls))
                                       (cond
-                                        ((and (uvar? v) (or (frame-var? triv) (uvar? triv)))
-                                         (set! conflict-table (update-table v (remove triv live-ls) conflict-table)))
+				       ((and (uvar? v) (or (frame-var? triv) (uvar? triv)))
+					(set! conflict-table (update-table v (remove triv live-ls) conflict-table)))
                                         ((uvar? v)
                                          (set! conflict-table (update-table v live-ls conflict-table))
                                    )
