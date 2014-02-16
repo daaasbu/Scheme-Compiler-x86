@@ -89,8 +89,8 @@
 		  [(and (commutative? binop) (eqv? var triv2)) (BINOP2 var binop triv2 triv1)]
 		  [else (let* ([UNSP (new-UNSP)]
 			      [store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv1))]
-			      [store2 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2)))]
-		#;possiblechange	      [store3 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP))]
+			      [store2 #;(with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2)]
+			      #;possiblechange	      [store3 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP))]
 			      [combine (list store1 store2)])
 			  (BINOP1-h combine store3))])))
 	 
@@ -104,7 +104,7 @@
 	       (with-output-language (LintroduceAllocationForms Effect)
 				     (lambda (var binop UNSP triv2)
 				       (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,var)))
-					      (store2 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))))
+					      (store2 #;(with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2))
 					      (store3 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP)))
 					      (combine (list store1 store2))) #;heretoo
  					 `(begin ,combine ... ,store3)))))
@@ -112,7 +112,6 @@
 	     ;;BINOP2 in (set! Var (binop Triv1 Triv2))		     
 	     (define BINOP2
 	       (lambda (var binop triv1 triv2)
-		 ;(display "blah")
 		 (cond
 		  [(and (BINOP2? binop) 
 			(or (and (uvar/reg? var) (int64/label? triv2)) 
@@ -125,7 +124,7 @@
 		   (let* ([UNSP (new-UNSP)]) 
 		     (X1 var binop UNSP triv2))]
 
-		  [(eqv? '* binop) 
+		  [(and (eqv? '* binop) (and (frame-var? var) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2) (int64/label? triv2))))  ;;added more checks
 		   (let* ([UNSP (new-UNSP)]) 
 		     (X2 var binop UNSP triv2))]
 		  [else 

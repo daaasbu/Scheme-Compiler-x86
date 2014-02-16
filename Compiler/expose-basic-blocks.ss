@@ -10,7 +10,7 @@
           (Framework helpers))
 
          (define-parser parse-LexposeBasicBlocks LexposeBasicBlocks)
-
+#|
          (define-pass expose-basic-blocks : LexposeFrameVar (x) -> LexposeBasicBlocks ()
            (definitions
              (define make-basic-block
@@ -113,3 +113,112 @@
                                                     (values bb (append b1* b2*)))]
                    [else (error who "something went wrong - Effect")]))
          ) ;End Library
+
+|#
+
+
+(define-pass expose-basic-blocks : LexposeFrameVar (x) -> LexposeBasicBlocks ()
+  (definitions
+    (define make-basic-block (lambda (ef* tl) (cons ef* tl)))
+    (define effects (lambda (bb) (car bb)))
+    (define tail (lambda (bb) (cdr bb)))
+    (define make-begin
+      (with-output-language (LexposeBasicBlocks Tail)
+                            (lambda (bb)
+                              (if (null? (effects bb))
+                                (tail bb)
+                                `(begin ,(effects bb) ... ,(tail bb))))))
+    (define make-lambda
+      (with-output-language (LexposeBasicBlocks LambdaExpr)
+                            (lambda (bb)
+                              `(lambda () ,(make-begin bb)))))
+    (define LambdaExpr*
+      (lambda (e* l*)
+        (if (null? e*)
+          '()
+          (let ([b1* (LambdaExpr* (cdr e*) (cdr l*))]
+                [b2* (LambdaExpr (car e*) (car l*))])
+            (append b1* b2*)))))
+    (define Effect*
+      (lambda (e* bb0)
+        (if (null? e*)
+          (values bb0 '())
+          (let-values ([(bb1 b1*) (Effect* (cdr e*) bb0)])
+            (let-values ([(bb2 b2*) (Effect (car e*) bb1)])
+              (values bb2 (append b1* b2*)))))))
+    );; end definitions
+
+  ;; The Tail processor returns a basic block and a list of lambda bindings.
+  (Tail : Tail (x) -> * (bb b*)
+    [(if ,pred ,[* bb1 b1*] ,[* bb2 b2*])
+     (let ([clab (unique-label 'c)] [alab (unique-label 'a)])
+       (let-values ([(pred-bb b3*) (Pred pred clab alab)])
+         (values pred-bb (append (list (cons clab (make-lambda bb1))
+                                       (cons alab (make-lambda bb2)))
+                                 b1* b2* b3*))))]
+    ;; The handling of begin is particularly important!
+    ;; We first process the tail expression at the *end* to produce basic block bb0.
+    ;; We then call Effect*, passing in this basic block.
+    [(begin ,ef* ... ,[* bb0 b1*])
+     (let-values ([(new-bb b2*) (Effect* ef* bb0)])
+       (values new-bb (append b1* b2*)))]
+    [(,triv) (values (make-basic-block '() (in-context Tail `(,triv))) '())])
+
+  ;; The Pred process takes as input a predicate and two labels: truelab and falselab.
+  ;; The Pred processor returns a basic block and a list of lambda bindings.
+  ;; The basic block jumps to truelab if the condition is true, and jumps to falselab otherwise.
+  (Pred : Pred (x truelab falselab) -> * (bb b*)
+    [(true) (values (make-basic-block '() (in-context Tail `(,truelab))) '())]
+    [(false) (values (make-basic-block '() (in-context Tail `(,falselab))) '())]
+    [(if ,pred ,[* bb1 b1*] ,[* bb2 b2*])
+     (let ([clab (unique-label 'c)] [alab (unique-label 'a)])
+       (let-values ([(pred-bb b3*) (Pred pred clab alab)])
+         (values pred-bb
+                 (append (list (cons clab (make-lambda bb1))
+                               (cons alab (make-lambda bb2)))
+                         b1* b2* b3*))))]
+    ;; This is similar to the case for begin in the Tail processor.
+    [(begin ,ef* ... ,[* bb0 b1*])
+     (let-values ([(bb1 b2*) (Effect* ef* bb0)])
+       (values bb1 (append b1* b2*)))]
+    [(,relop ,triv0 ,triv1)
+     (values (make-basic-block '() (in-context Tail `(if (,relop ,triv0 ,triv1)
+                                                       (,truelab) (,falselab))))
+             '())])
+  ;; The input is an effect expression and the *following* basic block.
+  ;; The output is an expanded basic block that includes this effect at the front
+  ;; and a list of lambda bindings.
+  (Effect : Effect (ef after-bb) -> * (bb b*)
+    [(nop) (values after-bb '())]
+    [(set! ,locrf0 ,[rhs1])
+     (let ([new-bb (make-basic-block
+                     (cons (in-context Effect `(set! ,locrf0 ,rhs1)) (effects after-bb))
+                     (tail after-bb))])
+       (values new-bb '()))]
+    [(if ,pred ,ef1 ,ef2)
+     (let ([clab (unique-label 'c)]
+           [alab (unique-label 'a)]
+           [jlab (unique-label 'j)])
+       (let-values ([(bb1 b1*) (Effect ef1 (make-basic-block '() (in-context Tail `(,jlab))))]
+                    [(bb2 b2*) (Effect ef2 (make-basic-block '() (in-context Tail `(,jlab))))]
+                    [(pred-bb b3*) (Pred pred clab alab)])
+         (values pred-bb
+                 (append (list (cons jlab (make-lambda after-bb))
+                               (cons clab (make-lambda bb1))
+                               (cons alab (make-lambda bb2)))
+                         b1* b2* b3*))))]
+    ;; This is similar to the case for begin in the Tail processor.
+    [(begin ,ef1* ... ,[* bb0 b1*])
+     (let-values ([(bb1 b2*) (Effect* ef1* bb0)])
+       (values bb1 (append b1* b2*)))])
+  (LambdaExpr : LambdaExpr (x lab) -> * (b*)
+    [(lambda () ,[* bb b*])
+     (cons (cons lab (make-lambda bb)) b*)])
+  (Prog : Prog (x) -> Prog ()
+    [(letrec ([,l* ,le*] ...) ,tl)
+     (let ([b1* (LambdaExpr* le* l*)])
+       (let-values ([(bb b2*) (Tail tl)])
+         (let ([b* (append b1* b2*)])
+           (let ([l* (map car b*)] [le* (map cdr b*)])
+             `(letrec ([,l* ,le*] ...) ,(make-begin bb))))))]))
+)
