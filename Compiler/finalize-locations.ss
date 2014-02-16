@@ -11,6 +11,11 @@
           (Framework nanopass)
           (Framework helpers))
 
+         (define-parser parse-LfinalizeLocations LfinalizeLocations)
+
+         (define-pass finalize-locations : LdiscardCallLive (x) -> LfinalizeLocations ()
+	   (definitions
+
          (define walk-symbol
            (lambda (x s)
              (letrec ((walk
@@ -23,17 +28,36 @@
                                           (walk y (cdr t))))]))))
                (walk x s))))
 
-         (define-parser parse-LfinalizeLocations LfinalizeLocations)
 
-         (define-pass finalize-locations : LdiscardCallLive (x) -> LfinalizeLocations ()
+             (define map*
+               (lambda (proc ls)
+                 (cond
+		  ((null? ls) '())
+		  (else (let ((cell (proc (car ls)))) (cons cell (map* proc (cdr ls))))))))
 
-           (Prog : Prog (x) -> Prog ()
+             (define Ef*
+               (lambda (ef*)
+                 (reverse (map* Effect (reverse ef*)))))
+
+	    (define remove-frames
+	      (lambda (env)
+		(filter (lambda (x) (register? (cdr x))) env))) 
+	    
+	     (define reg-assocs '())
+	     
+	     
+	
+
+
+)
+
+      #|     (Prog : Prog (x) -> Prog ()
                  [(letrec ([,l* ,le*] ...) ,bd) `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x)) le*)] ...) ,(Body bd '()))])
            (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
-                       [(lambda () ,bd) `(lambda () ,(Body bd '()))])
-           (Body : Body (x env) -> Tail ()
-                 [(locate ([,uv* ,r*] ...) ,tl) (Tail tl (append (map cons uv* r*) env))]
-                 [else (error who "something went wrong body" x env)])
+                       [(lambda () ,bd) `(lambda () ,(Body bd '()))]) |#
+           (Body : Body (x) -> Tail ()
+                 [(locate ([,uv* ,r*] ...) ,tl) (Tail tl (map cons uv* r*))]
+                 [else (error who "something went wrong body" x)])
            (Tail : Tail (x env) -> Tail ()
                  [(begin ,ef* ... ,tl1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Tail tl1 env))]
                  [(,triv) `(,(Triv triv env))]
@@ -47,9 +71,9 @@
                  [(begin ,ef* ... ,pred) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Pred pred env))]
                  [else (error who "something went wrong pred" x env)])
            (Effect : Effect (x env) -> Effect ()
-                   [(set! ,v ,triv) (if (equal? (walk-symbol v env) (walk-symbol triv env))
-                                        `(nop)
-                                        `(set! ,(Var v env) ,(Triv triv env)))];changed here and 2 lines above
+                   [(set! ,v ,triv) (if
+				     (equal? (walk-symbol v env) (walk-symbol triv env))  `(nop)
+				     `(set! ,(Var v env) ,(Triv triv env)))];changed here and 2 lines above
                    [(set! ,v (,op ,triv1 ,triv2)) `(set! ,(Var v env) (,op ,(Triv triv1 env) ,(Triv triv2 env)))]
                    [(if ,pred ,ef1 ,ef2) `(if ,(Pred pred env) ,(Effect ef1 env) ,(Effect ef2 env))]
                    [(begin ,ef* ... ,ef1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Effect ef1 env))]

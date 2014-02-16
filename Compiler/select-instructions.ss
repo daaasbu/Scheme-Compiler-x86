@@ -210,10 +210,10 @@
 				    (locate ([,uv3* ,locrf*] ...)
 					    (frame-conflict ,cfgraph ,tl))))]
 
-		 [(locate ((,uv** ,locrf*) ...) ,tl) `(locate ((,uv** ,locrf*) ...) ,tl)])
+		 [(locate ((,uv** ,locrf*) ...) ,[tl]) `(locate ((,uv** ,locrf*) ...) ,tl)])
 	   
 	   (Tail : Tail (x) -> Tail ()
-		 [(begin ,ef* ... ,[tl1])  `(begin ,(map Effect ef*) ... ,tl1)   ]
+		 [(begin ,ef* ... ,[tl1])  `(begin ,(map Effect ef*) ... ,tl1)]
 		 [(,triv ,locrf* ...) `(,triv ,locrf* ...) ]
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2) ])
 

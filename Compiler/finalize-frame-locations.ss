@@ -25,7 +25,7 @@
 
          ;(define-parser parse-LfinalizeFrameLocations LfinalizeFrameLocations)
 
-         (define-pass finalize-frame-locations : LassignFrame (x) -> LassignFrame ()
+         (define-pass finalize-frame-locations : LassignFrame (x) -> LintroduceAllocationForms ()
 
 #|
            (Prog : Prog (x) -> Prog ()
