@@ -88,7 +88,7 @@
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-;                                               (newline) (display "conflict table: ") (display conflict-table) (newline)
+                                    ;           (newline) (display "conflict table: ") (display conflict-table) (newline)
                                                 
                                               `(locals (,uv* ...) (frame-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
@@ -137,7 +137,7 @@
                                         ((uvar? v)
                                          (set! conflict-table (update-table v live-ls conflict-table))
                                    )
-                                       ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table)))
+                                       ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))) ;added case for reg
                                        )
                                       (let* ([a (Triv triv)])
                                         (if (register? v) (set! live-ls (remove triv live-ls)))
@@ -151,7 +151,7 @@
                                                      
                                                     (let* ([a (Triv triv2)]
                                                            [b (Triv triv1)])
-                                                      (if (register? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))
+                                                      ;(if (register? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))
                                                     `(set! ,v (,op ,b ,a))))]
                    [(if ,pred ,ef1 ,ef2) (begin
                                            (let* ([a (Effect ef2)]

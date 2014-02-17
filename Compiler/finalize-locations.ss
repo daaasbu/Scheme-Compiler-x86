@@ -56,7 +56,7 @@
            (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
                        [(lambda () ,bd) `(lambda () ,(Body bd '()))]) |#
            (Body : Body (x) -> Tail ()
-                 [(locate ([,uv* ,r*] ...) ,tl) (Tail tl (map cons uv* r*))]
+                 [(locate ([,uv* ,locrf*] ...) ,tl) (Tail tl (map cons uv* locrf*))]
                  [else (error who "something went wrong body" x)])
            (Tail : Tail (x env) -> Tail ()
                  [(begin ,ef* ... ,tl1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Tail tl1 env))]

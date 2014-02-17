@@ -98,8 +98,8 @@
 	       (lambda (total-fv-conflicts n)
 		 (let ((fv (index->frame-var n)))
 		   (cond
-		    [(memv fv total-fv-conflicts) (find-free-fv total-fv-conflicts (add1 n))]
-		    [else fv]))))
+		    [(not (memv fv total-fv-conflicts)) fv]
+		    [else (find-free-fv total-fv-conflicts (add1 n))]))))
 		 
 		 
 

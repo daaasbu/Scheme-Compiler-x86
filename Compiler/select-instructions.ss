@@ -15,6 +15,10 @@
 
 	   (definitions
 
+	     (define unspillable?
+	       (lambda (u)
+		 (equal? (extract-root u) "UNSP")))
+
 	     (define UNSP* '())
 
 	     (define commutative?
@@ -27,7 +31,7 @@
 
 	     (define int64/label?
 	       (lambda (triv)
-		 (or (label? triv) (int64? triv))))
+		 (or (label? triv) (and (not (int32? triv)) (int64? triv)))))
 
 	     (define uvar/reg?
 	       (lambda (triv)
@@ -117,16 +121,19 @@
 			(or (and (uvar/reg? var) (int64/label? triv2)) 
 			    (and (frame-var? var) (frame-var? triv2)) 
 			    (and (frame-var? var) (int64/label? triv2))))
-		   (let* ([UNSP (new-UNSP)]) 
-		     (X1 var binop UNSP triv2))]
+		   
+		       (let* ([UNSP (new-UNSP)]) 
+			 (X1 var binop UNSP triv2))]
 		  
 		  [(and (eqv? '* binop) (and (uvar/reg? var) (int64/label? triv2)))
-		   (let* ([UNSP (new-UNSP)]) 
-		     (X1 var binop UNSP triv2))]
+		  
+		       (let* ([UNSP (new-UNSP)]) 
+			 (X1 var binop UNSP triv2))]
 
 		  [(and (eqv? '* binop) (and (frame-var? var) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2) (int64/label? triv2))))  ;;added more checks
-		   (let* ([UNSP (new-UNSP)]) 
-		     (X2 var binop UNSP triv2))]
+		
+		       (let* ([UNSP (new-UNSP)])    
+			 (X2 var binop UNSP triv2))]
 		  [else 
 		   (BINOP2-h var binop triv1 triv2)])))
 
