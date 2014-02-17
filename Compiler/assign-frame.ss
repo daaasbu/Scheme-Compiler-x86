@@ -107,7 +107,7 @@
              (define choose-fv-helper
 	       (lambda (pick vars-reduced c-table-reduced c-table assignments)
 		 (let* ([conflicts (get-conflicts pick c-table)]
-			[fv-conflicts (filter (lambda (x) (not (frame-var? x))) conflicts)]
+			[fv-conflicts (filter (lambda (x) (frame-var? x)) conflicts)]
 			[var-conflicts (difference conflicts fv-conflicts)]
 			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
 
@@ -145,17 +145,20 @@
 					   (locate ([,uv3* ,locrf*] ...)
 						   (frame-conflict ,cfgraph1 ,[tl])))))
 		 
-		  (if (and (null? cfgraph1) (null? uv1*))  `(locate ((,uv3* ,locrf*) ...) ,tl)
+		  (if (and (null? cfgraph1) (null? uv1*)) (begin  `(locate ((,uv3* ,locrf*) ...) ,tl))
 		      
 		      (let ([assignments (choose-fv-initialize uv4* cfgraph1)])
 			(let* ([uvar* (map car assignments)]
 			       [reg* (map cadr assignments)])
+;			  (display "ulocals: ") (display uv2*) (newline)
+;			  (display "locate: ") (display uv3*) (newline)
+;			  (display "spills:") (display uv4*) (newline)
 			  `(locals (,uv1* ...)
 				   (ulocals (,uv2* ...)
 				   (locate ([,(append uvar* uv3*) ,(append reg* locrf*)] ...)
 					   (frame-conflict ,cfgraph1 ,tl)))))))]
 		 
-		 [(locate ((,uv** ,locrf*) ...) ,[tl])  `(locate ((,uv** ,locrf*) ...) ,tl)]
+		 [(locate ((,uv** ,locrf*) ...) ,[tl]) #;(display "Do I match here?")  `(locate ((,uv** ,locrf*) ...) ,tl)]
 		 [else (error who "Body")]
 
 

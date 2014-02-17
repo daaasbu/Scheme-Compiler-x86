@@ -175,7 +175,7 @@
 	     (define RELOP1
 	       (lambda (relop triv1 triv2)
 		 (cond
-#;X4		  [(and (int32? triv1) (or (uvar/reg? triv2) (frame-var? triv2))) 
+ #;X4		  [(and (int32? triv1) (or (uvar/reg? triv2) (frame-var? triv2))) 
 		   (X4 relop triv1 triv2)]
 #;X5              [(or (and (frame-var? triv1) (frame-var? triv2)) (and (int32? triv1) (int32? triv2)) (and (int64/label? triv1) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2))))
 		   (X5 (new-UNSP) relop triv1 triv2)]
