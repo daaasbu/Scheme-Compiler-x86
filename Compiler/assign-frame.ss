@@ -97,6 +97,7 @@
 	     (define find-free-fv
 	       (lambda (total-fv-conflicts n)
 		 (let ((fv (index->frame-var n)))
+		  
 		   (cond
 		    [(not (memv fv total-fv-conflicts)) fv]
 		    [else (find-free-fv total-fv-conflicts (add1 n))]))))
@@ -109,6 +110,7 @@
 			[fv-conflicts (filter (lambda (x) (not (frame-var? x))) conflicts)]
 			[var-conflicts (difference conflicts fv-conflicts)]
 			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
+
 			[total-fv-conflicts (union fv-conflicts var-fv-conflicts)])
 		   (cond						 
 		    [(null? vars-reduced) (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments)]
@@ -142,9 +144,8 @@
 				   (spills (,uv4* ...)
 					   (locate ([,uv3* ,locrf*] ...)
 						   (frame-conflict ,cfgraph1 ,[tl])))))
-		  (if (and (null? cfgraph1) (null? uv1*)) `(locals ()
-								   (ulocals (,uv2* ...)
-									    (locate () (frame-conflict ,cfgraph1 ,tl))))
+		 
+		  (if (and (null? cfgraph1) (null? uv1*))  `(locate ((,uv3* ,locrf*) ...) ,tl)
 		      
 		      (let ([assignments (choose-fv-initialize uv4* cfgraph1)])
 			(let* ([uvar* (map car assignments)]
