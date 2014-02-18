@@ -159,7 +159,7 @@
 	       (with-output-language (LintroduceAllocationForms Pred)
 	       (lambda (UNSP relop triv1 triv2)
 		 (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv2)))
-			(store2  (with-output-language (LintroduceAllocationForms Pred) `(,(flip-relop relop) ,UNSP ,triv1))))
+			(store2 (with-output-language (LintroduceAllocationForms Pred) `(,(flip-relop relop) ,UNSP ,triv1))))
 		 `(begin ,(list store1) ... ,store2)))))
 
 	     
@@ -176,11 +176,11 @@
 	       (lambda (relop triv1 triv2)
 		 (cond
  #;X4		  [(and (int32? triv1) (or (uvar/reg? triv2) (frame-var? triv2))) 
-		   (X4 relop triv1 triv2)]
+		   (X4 relop triv1 triv2)];good on tests, and X6
 #;X5              [(or (and (frame-var? triv1) (frame-var? triv2)) (and (int32? triv1) (int32? triv2)) (and (int64/label? triv1) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2))))
-		   (X5 (new-UNSP) relop triv1 triv2)]
+		   (X5 (new-UNSP) relop triv1 triv2)] ;good on tests, and X5
 #;X6              [(or (and (uvar/reg? triv1) (int64/label? triv2)) (and (frame-var? triv1) (int64/label? triv2)) (and (int32? triv1) (int64/label? triv2))) 
-		   (X6 (new-UNSP) relop triv1 triv2)]
+		   (X6 (new-UNSP) relop triv1 triv2)];good on tests,
 #;X7              [(and (int64/label? triv1) (int64/label? triv2)) 
 		   (X7 (new-UNSP) (new-UNSP) relop triv1 triv2)]
 		  [else (RELOP1-h relop triv1 triv2)])))
