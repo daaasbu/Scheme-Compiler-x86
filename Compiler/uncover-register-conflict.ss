@@ -157,7 +157,7 @@
                                        ((register? v) (set! conflict-table (update-table-reg v live-ls conflict-table)))
                                        )
                                       (let* ([a (Triv triv)])
-                                        (if (frame-var? v) (set! live-ls (remove triv live-ls)))
+                                     ;   (if (frame-var? v) (set! live-ls (remove triv live-ls)))
 					`(set! ,v ,a)))]
                    [(set! ,v (,op ,triv1 ,triv2)) 
 		    (begin
@@ -168,7 +168,7 @@
 						    
                                                     (let* ([a (Triv triv2)]
                                                            [b (Triv triv1)])
-                                                      (if (frame-var? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))
+                                                   ;   (if (frame-var? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))
 						      `(set! ,v (,op ,b ,a))))]
                    [(if ,pred ,ef1 ,ef2) (begin
                                            (let* ([a (Effect ef2)]

@@ -111,13 +111,13 @@
 			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
 
 			[total-fv-conflicts (union fv-conflicts var-fv-conflicts)])
-		   (display "pick: ") (display pick) (newline)
-		   (display "conflicts: ") (display conflicts) (newline)
-		   (display "fv-conflicts: ") (display fv-conflicts) (newline)
-		   (display "var-conflicts: ") (display var-conflicts) (newline)
-		   (display "assignments: ") (display assignments) (newline)
-		   (display "var-fv-conflicts: ") (display var-fv-conflicts) (newline)
-		   (display "I have looped") (newline)
+	;	   (display "pick: ") (display pick) (newline)
+;		   (display "conflicts: ") (display conflicts) (newline)
+;		   (display "fv-conflicts: ") (display fv-conflicts) (newline)
+;		   (display "var-conflicts: ") (display var-conflicts) (newline)
+;		   (display "assignments: ") (display assignments) (newline)
+;		   (display "var-fv-conflicts: ") (display var-fv-conflicts) (newline)
+;		   (display "I have looped") (newline)
 		
 		   (cond						 
 		    [(null? vars-reduced) (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments)]

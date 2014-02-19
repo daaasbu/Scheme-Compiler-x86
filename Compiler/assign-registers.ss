@@ -114,7 +114,8 @@
 			[free-regs (difference registers total-reg-conflicts)])
 		   
 		   (cond
-		    [(and (unspillable? pick) (null? vars-reduced) (null? spill-list) (null? free-regs)) (display "something else is wrong") (newline) (display assignments) (newline) (display "conflicts: ") (display conflicts) (newline) (display "reg-conflicts: ") (display reg-conflicts) (newline) (display "var-conflicts: ") (display var-conflicts) (newline) (display "var-reg-conflicts: ") (display var-reg-conflicts) (newline) (display "total reg conflicts: ") (display total-reg-conflicts) (newline)]
+		    [(and (unspillable? pick) (null? vars-reduced) (null? spill-list) (null? free-regs)) ;(display "something else is wrong") (newline) (display assignments) (newline) (display "conflicts: ") (display conflicts) (newline) (display "reg-conflicts: ") (display reg-conflicts) (newline) (display "var-conflicts: ") (display var-conflicts) (newline) (display "var-reg-conflicts: ") (display var-reg-conflicts) (newline) (display "total reg conflicts: ") (display total-reg-conflicts) (newline)
+]
 		    [(and (unspillable? pick) (null? vars-reduced) (null? free-regs)) assignments]
 		    [(and (unspillable? pick) (null? free-regs)) (choose-registers vars-reduced c-table-reduced c-table assignments)]
 		    [(and (null? free-regs) (null? vars-reduced)) 

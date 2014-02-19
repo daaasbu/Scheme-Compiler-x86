@@ -88,7 +88,7 @@
                  [(locals (,uv* ...) ,tl) (begin
                                               (set! conflict-table (init-conflict-table uv*))
                                               (let ([a (Tail tl)])
-                                    ;           (newline) (display "conflict table: ") (display conflict-table) (newline)
+         ;                                   (newline) (display "conflict table: ") (display conflict-table) (newline)
                                                 
                                               `(locals (,uv* ...) (frame-conflict ,conflict-table ,a))))]
                  [else (error who "something went wrong - Body")])
@@ -130,27 +130,37 @@
            (Effect : Effect (x) -> Effect ()
                    [(nop) `(nop)]
                    [(set! ,v ,triv) (begin
-                                      (set! live-ls (remove v live-ls))
+;				       (display "v: ") (display v)(display "  ") (display "triv: ") (display triv) (newline)
+;				       (display "live-ls-bef: ") (display live-ls) (newline)
+                                                   
+				       (set! live-ls (remove v live-ls))
+;				       (display "live-ls-after-rem: ") (display live-ls) (newline)
                                       (cond
 				       ((and (uvar? v) (or (frame-var? triv) (uvar? triv)))
 					(set! conflict-table (update-table v (remove triv live-ls) conflict-table)))
                                         ((uvar? v)
-                                         (set! conflict-table (update-table v live-ls conflict-table))
-                                   )
-                                       ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))) ;added case for reg
-                                       )
+                                         (set! conflict-table (update-table v live-ls conflict-table)))
+                                       ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
+;				      (display "conflict table: ") (display conflict-table) (newline)
+			
                                       (let* ([a (Triv triv)])
-                                        (if (register? v) (set! live-ls (remove triv live-ls)))
+                                       ; (if (register? v) (set! live-ls (remove triv live-ls)))
+;					(display "live-ls-after-rhs: ") (display live-ls) (newline)
+;					(display "I have looped") (newline) (newline)
                                       `(set! ,v ,a)))]
                    [(set! ,v (,op ,triv1 ,triv2)) (begin
-                                                    
+;                                                    (display "v: ") (display v)(display "  ") (display "triv1: ") (display triv1)(display "  ") (display "triv2: ") (display triv2) (newline)
+;						    (display "live-ls-bef: ") (display live-ls) (newline)
                                                     (set! live-ls (remv v live-ls))
+;						    (display "live-ls-after-rem: ") (display live-ls) (newline)
                                                     (cond
                                                      ((uvar? v) (set! conflict-table (update-table v live-ls conflict-table)))
                                                      ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
-                                                     
+;                                                     (display "conflict table: ") (display conflict-table) (newline)
                                                     (let* ([a (Triv triv2)]
                                                            [b (Triv triv1)])
+;						      (display "live-ls-after-rhs: ") (display live-ls) (newline)
+;						      (display "I have looped") (newline) (newline)
                                                       ;(if (register? v) (set! live-ls (remove triv1 (remove triv2 live-ls))))
                                                     `(set! ,v (,op ,b ,a))))]
                    [(if ,pred ,ef1 ,ef2) (begin
