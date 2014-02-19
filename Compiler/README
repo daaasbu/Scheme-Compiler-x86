@@ -1,0 +1,14 @@
+Tests 1-13, 16-26, and 44 all pass as expected. Also all the expected fails, fail in verify scheme.
+My problem is as probably guessed, in EBB. I couldn't find a way to handle the if statements, 
+and unless I have a Eureka moment in the next couple hours, my EBB will stay as is. 
+I set it up so I could go on to the next two passes, so I could at least have some tests pass to get partial points. 
+
+I worked with Ryan Rozanski and Taylor Weatherly  on the entire assignment.
+
+Special thanks to Tim and Rachel on flatten-program on how to handle the begin line w/ catamorphisms.
+
+Special thanks to Andy for realizing that we weren't checking the range of integers in verify scheme.
+
+Special thanks to Ryan for realizing we weren't using leaq in generate.
+
+

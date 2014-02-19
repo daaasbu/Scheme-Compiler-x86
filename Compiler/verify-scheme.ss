@@ -1,146 +1,90 @@
+;;verify-scheme, takes our subset of scheme consisting of mainly letrecs, effects,registers,frame-vars, labels and lambda expressions, and goes through a series of tests that targets a certain machine.These tests could change depending on the target of our compiler.  Goes from LverifyScheme to LverifyScheme.
+;;
 (library (Compiler verify-scheme)
-  (export verify-scheme)
-  (import
-    (chezscheme)
-    (Framework match)
-    (Framework helpers))
+         (export verify-scheme parse-LverifyScheme)
+         (import
+          (chezscheme)
+          (source-grammar)
+          (Framework nanopass)
+          (Framework helpers))
 
-;;;  verify-scheme accepts a signle value and verifies that the value
-;;;  is a valid program in the current source language.
-;;;
-;;;  Grammar for verify-scheme (assignment 6):
-;;;
-;;;  Program --> (letrec ([<label> (lambda (<uvar>*) <Body>)]*) <Body>)
-;;;  Body    --> (locals (<uvar>*) <Tail>)
-;;;  Tail    --> <Triv>
-;;;           |  (binop <Value> <Value>)
-;;;           |  (<Value> <Value>*)
-;;;           |  (if <Pred> <Tail> <Tail>)
-;;;           |  (begin <Effect>* <Tail>)
-;;;  Pred    --> (true)
-;;;           |  (false)
-;;;           |  (<relop> <Value> <Value>)
-;;;           |  (if <Pred> <Pred> <Pred>)
-;;;           |  (begin <Effect>* <Pred>)
-;;;  Effect  --> (nop)
-;;;           |  (set! <uvar> <Value>)
-;;;           |  (if <Pred> <Effect> <Effect>)
-;;;           |  (begin <Effect>* <Effect>)
-;;;  Value   --> <Triv>
-;;;           |  (<binop> <Value> <Value>)
-;;;           |  (if <Pred> <Value> <Value>)
-;;;           |  (begin <Effect>* <Value>)
-;;;  Triv    --> <uvar> | <int64> | <label>
-;;;  
-;;;  Where uvar is symbol.n where (n >= 0)
-;;;        label is symbol$n where (n >= 0)
-;;;        binop is +, -, *, logand, logor, or sra
-;;;        relop is <, >, <=, >=, =
-;;;
-;;;  We still have a couple constraints based on our machine and
-;;;  testing framework. Namely, we expect calls target values to
-;;;  evaluate to uvars or labels, and we expect computations to be 
-;;;  done with uvars or integers.
-;;;
-;;;  Note that we also expect the sra binop to have a uint6 in the
-;;;  second argument.
-;;;
+         (define binop?
+           (lambda (x)
+             (if (memq x '(+ - * logand logor sra)) #t #f)))
+         (define lookup
+           (lambda (x env)
+             (member x env)))
+         (define duplicate-labels?
+           (lambda (env)
+             (cond
+              [(null? env) #t]
+              [(member (car env) (cdr env)) #f]
+              [else (duplicate-labels? (cdr env))])))
+         (define suffix-list
+           (lambda (ls)
+             (duplicate-labels? (map extract-suffix ls))))
 
-(define-who verify-scheme
-  (define verify-x-list
-    (lambda (x* x? what)
-      (let loop ([x* x*] [idx* '()])
-        (unless (null? x*)
-          (let ([x (car x*)] [x* (cdr x*)])
-            (unless (x? x)
-              (error who "invalid ~s ~s found" what x))
-            (let ([idx (extract-suffix x)])
-              (when (member idx idx*)
-                (error who "non-unique ~s suffix ~s found" what idx))
-              (loop x* (cons idx idx*))))))))
-  (define Triv
-    (lambda (label* uvar*)
-      (lambda (t)
-        (unless (or (label? t) (uvar? t) (and (integer? t) (exact? t)))
-          (error who "invalid Triv ~s" t))
-        (when (and (integer? t) (exact? t))
-          (unless (int64? t)
-            (error who "integer out of 64-bit range ~s" t)))
-        (when (uvar? t)
-          (unless (memq t uvar*)
-            (error who "reference to unbound uvar ~s" t)))
-        (when (label? t)
-          (unless (memq t label*)
-            (error who "unbound label ~s" t)))
-        t)))
-  (define Value
-    (lambda (label* uvar*)
-      (lambda (val)
-        (match val
-          [(if ,[(Pred label* uvar*) -> test] ,[conseq] ,[altern]) (void)]
-          [(begin ,[(Effect label* uvar*) -> ef*] ... ,[val]) (void)]
-          [(sra ,[x] ,y)
-           (unless (uint6? y)
-             (error who "invalid sra operand ~s" y))]
-          [(,binop ,[x] ,[y])
-           (guard (memq binop '(+ - * logand logor sra)))
-           (void)]
-          [,[(Triv label* uvar*) -> tr] (void)]))))
-  (define Effect
-    (lambda (label* uvar*)
-      (lambda (ef)
-        (match ef
-          [(nop) (void)]
-          [(if ,[(Pred label* uvar*) -> test] ,[conseq] ,[altern]) (void)]
-          [(begin ,[ef*] ... ,[ef]) (void)]
-          [(set! ,var ,[(Value label* uvar*) -> val])
-           (unless (memq var uvar*)
-             (error who "assignment to unbound var ~s" var))]
-          [,ef (error who "invalid Effect ~s" ef)]))))
-  (define Pred
-    (lambda (label* uvar*)
-      (lambda (pr)
-        (match pr
-          [(true) (void)]
-          [(false) (void)]
-          [(if ,[test] ,[conseq] ,[altern]) (void)]
-          [(begin ,[(Effect label* uvar*) -> ef*] ... ,[pr]) (void)]
-          [(,relop ,[(Value label* uvar*) -> x] ,[(Value label* uvar*) -> y])
-           (unless (memq relop '(< > <= >= =))
-             (error who "invalid predicate operator ~s" relop))]
-          [,pr (error who "invalid Pred ~s" pr)]))))
-  (define Tail
-    (lambda (tail label* uvar*)
-      (match tail
-        [(if ,[(Pred label* uvar*) -> test] ,[conseq] ,[altern]) (void)]
-        [(begin ,[(Effect label* uvar*) -> ef*] ... ,[tail]) (void)]
-        [(sra ,[(Value label* uvar*) -> x] ,y)
-         (unless (uint6? y)
-           (error who "invalid sra operand ~s" y))]
-        [(,binop ,[(Value label* uvar*) -> x] ,[(Value label* uvar*) -> y])
-         (guard (memq binop '(+ - * logand logor sra)))
-         (void)]
-        [(,[(Value label* uvar*) -> rator] 
-          ,[(Value label* uvar*) -> rand*] ...)
-         (void)]
-        [,[(Triv label* uvar*) -> triv] (void)])))
-  (define Body
-    (lambda (label*)
-      (lambda (bd fml*)
-        (match bd
-          [(locals (,local* ...) ,tail)
-           (let ([uvar* `(,fml* ... ,local* ...)])
-             (verify-x-list uvar* uvar? 'uvar)
-             (Tail tail label* uvar*))]
-          [,bd (error who "invalid Body ~s" bd)]))))
-  (lambda (x)
-    (match x
-      [(letrec ([,label* (lambda (,fml** ...) ,bd*)] ...) ,bd)
-       (verify-x-list label* label? 'label)
-       (map (lambda (fml*) (verify-x-list fml* uvar? 'formal)) fml**)
-       (for-each (Body label*) bd* fml**)
-       ((Body label*) bd '())]
-      [,x (error who "invalid Program ~s" x)])
-    x))
+         (define-parser parse-LverifyScheme LverifyScheme)
 
+         (define-pass verify-scheme : LverifyScheme (x) -> LverifyScheme ()
+           (Prog : Prog (x) -> Prog ()
+                 [(letrec ([,l* ,[le*]] ...) ,bd)
+                  (unless (suffix-list l*) (error who "Duplicate Labels"))
+                   `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x l*)) le*)] ...) ,(Body bd l*))])
+           (LambdaExpr : LambdaExpr (x env) -> LambdaExpr ()
+                       [(lambda () ,bd)  `(lambda () ,(Body bd env))])
+           (Body : Body (x env) -> Body ()
+                 [(locals (,uv* ...) ,tl)
+                  (unless (suffix-list uv*) (error who "Duplicate uvar's"))
+                  `(locals (,uv* ...) ,(Tail tl (append uv* env) uv*))])
+           (Tail : Tail (x env env2) -> Tail ()
+                 [(begin ,ef* ... ,tl1)   `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Tail tl1 env env2))]
+                 [(,triv ,locrf* ...)
+;                  (unless (or (register? triv) (label? triv) (frame-var? triv))
+;                      (error who "triv must be a label or variable" triv))
+                  (if (or (uvar? triv) (label? triv))
+                      (unless (lookup triv env) (error who "unbound label"))) x]
+                 [(if ,pred ,tl1 ,tl2) (Pred pred env env2) (Tail tl1 env env2) (Tail tl2 env env2) x])
+           (Pred : Pred (x env env2) -> Pred ()
+                 [(true) x]
+                 [(false) x]
+                 [(,relop ,triv1 ,triv2)
+                  (if (or (label? triv1) (uvar? triv1))
+                      (unless (lookup triv1 env) (error who "not in env")))
+                  (if (or (label? triv2) (uvar? triv2))
+                      (unless (lookup triv2 env) (error who "not in env")))
+;                  (unless (or (not (frame-var? triv1)) (not (frame-var? triv2)))
+;                          (error who "Two frame vars while using a relop"))
+;                  (if (integer? triv1)
+;                      (unless (int32? triv1) (error who "must use a 32 bit integer")))
+;                  (if (integer? triv2)
+;                      (unless (int32? triv2) (error who "must use a 32 bit integer")))
+;                  (if (and (integer? triv1) (register? triv2))
+;                      (error who "int32 must be the first arg to cmpq"))
+                  x]
+                 [(if ,pred1 ,pred2 ,pred3) (Pred pred1 env env2) (Pred pred2 env env2) (Pred pred3 env env2) x]
+                 [(begin ,ef* ... ,pred) `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Pred pred env env2))])
+           (Effect : Effect (x env env2) -> Effect ()
+                   [(set! ,v ,triv)
+                    (if (uvar? v)  (unless (lookup v env) (error who "not in env")))
+                    (if (uvar? triv)  (unless (lookup triv env) (error who "not in env")))
+;                    (if (and (frame-var? v) (frame-var? triv))
+;                        (error who "Can't set! a frame variable to a frame variable" v triv))
+;                    (if (label? triv)
+;                        (unless (or (register? v) (label? v) (uvar? v)) ;;;;;changed this in a4 -> or label?/uvar?
+;                                (error who "If triv is a label, then var must be a register" v triv)))
+;                    (if (or (int32? triv) (int64? triv))
+;                        (unless (or (int32? triv) (and (register? v) (int64? triv)))
+;                                (error who "Triv not valid" triv)))
+                    x]
+                   [(set! ,v (,op ,triv1 ,triv2))
+                    (if (uvar? v)  (unless (lookup v env) (error who "not in env")))
+                    (if (uvar? triv1)  (unless (lookup triv1 env) (error who "not in env")))
+                    (if (uvar? triv2)  (unless (lookup triv2 env) (error who "not in env")))
+
+                    (if (eqv? op `sra)
+                        (unless (and (<= 0 triv2) (>= 63 triv2))
+                                (error who "sra out of bounds" triv2))) x]
+
+		   [(nop) x]))
 )
