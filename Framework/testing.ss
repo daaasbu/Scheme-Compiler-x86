@@ -24,45 +24,45 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; To run a test suite:
-;; (test-valid)    runs all the valid tests
-;; (test-invalid)  runs all the invalid tests
-;; (test-all)      runs all the tests
+;; (test-valid) runs all the valid tests
+;; (test-invalid) runs all the invalid tests
+;; (test-all) runs all the tests
 ;; (run-tests)
-;;    runs the compiler in (test-compiler) over the tests in
-;;    (test-suite) with a fresh test runner. if you've customized
-;;    anything, use this to run your customizations.
+;; runs the compiler in (test-compiler) over the tests in
+;; (test-suite) with a fresh test runner. if you've customized
+;; anything, use this to run your customizations.
 ;;
 ;; Debugging:
 ;; After you run a test suite, you may use the following procedures
 ;; to recover what went wrong with the tests that failed.
 ;;
 ;; (display-test-failure <test number>)
-;;    returns a description of the test's error condition
+;; returns a description of the test's error condition
 ;;
 ;; (inspect (test-failure-condition <test number>))
-;;    this enters the scheme debugger with the error condition
-;;    so you can inspect it
+;; this enters the scheme debugger with the error condition
+;; so you can inspect it
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Customizations:
 ;;
 ;; (test-suite <new-test-suite>)
-;;    Creates a test-suite from the list of test cases specified by
-;;    <new-test-suite>
+;; Creates a test-suite from the list of test cases specified by
+;; <new-test-suite>
 ;; (refine-test-suite <test-number>*)
-;;    Reduces the current test suite to those specified by the
-;;    <test-number>* set. Note that this causes original numbering to
-;;    be lost.
+;; Reduces the current test suite to those specified by the
+;; <test-number>* set. Note that this causes original numbering to
+;; be lost.
 ;;
 ;; (test-compiler <new-test-compiler>)
-;;    Specifies which compiler is to be used. This is generally
-;;    defined by the (Compiler compile) library.
+;; Specifies which compiler is to be used. This is generally
+;; defined by the (Compiler compile) library.
 ;;
 ;; (reset-test-runner)
-;;    Resets the current test runner to a fresh test runner,
-;;    discarding all the information from the previous run of the test
-;;    suite
+;; Resets the current test runner to a fresh test runner,
+;; discarding all the information from the previous run of the test
+;; suite
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -135,12 +135,12 @@
 (define-syntax invalid
   (syntax-rules ()
     ((_ ts ...)
-     (invalid-tests (map cdr '(ts ...))))))
+     (invalid-tests '(ts ...)))))
 
 (define-syntax valid
   (syntax-rules ()
     ((_ ts ...)
-     (valid-tests (map cdr '(ts ...))))))
+     (valid-tests '(ts ...)))))
 
 
 ;; Record that defines the test runner. This records the number of
@@ -247,7 +247,7 @@
         (for-each (test-one compiler runner) (test-suite))
 
         ;; Finish up
-	(test-suite (append vt it))
+(test-suite (append vt it))
         (print-finalization runner)
         ))))
 
@@ -275,7 +275,7 @@
         ;; Finish up
         (test-suite (append vt it))
 
-        ;; send and ending character so the autograder knows we are done. 
+        ;; send and ending character so the autograder knows we are done.
         ;; this is necessary because the scheme repl continues after the run
         ;; completes, therefore the subprocess from the autograder will hang
         ;; waiting for completion
@@ -293,7 +293,7 @@
     (let ((compiler (test-compiler))
           (runner (current-test-runner))
           (suite (test-suite)))
-      (begin 
+      (begin
         (print-group-heading)
         (for-each (test-one compiler runner) suite)
         (print-finalization runner)))))
@@ -331,20 +331,20 @@
 ;; Prints an individual test completion.
 ;; Example output:
 ;;
-;;    1    Pass    
-;;    2    Fail    Pass: PASS-NAME
-;;    3    Fail    Runtime error (in who)
+;; 1 Pass
+;; 2 Fail Pass: PASS-NAME
+;; 3 Fail Runtime error (in who)
 ;; ...
 (define (print-individual-completion pr runner)
-  (apply printf "~4d    ~8a~a~n"
+  (apply printf "~4d ~8a~a~n"
          (current-test-number runner)
          (result->string pr)))
 
 ;; Prints an individual test completion.
 ;; Example output:
-;;    
-;;    <test-result name="test-name" result="pass/fail" expected="pass/fail" />
-;;    
+;;
+;; <test-result name="test-name" result="pass/fail" expected="pass/fail" />
+;;
 (define (print-individual-completion-xml pr runner expected)
   (printf "<test-result name=\"test-~s\" result=~s expected=~s />\n"
           (current-test-number runner)
@@ -361,7 +361,7 @@
                    "Wrapper answer verification error"
                    (pass-verification-violation-pass pass-result)))]
     [(or (error? pass-result) (violation? pass-result))
-     (list "Fail" 
+     (list "Fail"
            (if (who-condition? pass-result)
              (format "Runtime error in ~s" (condition-who pass-result))
              "Runtime error"))]
@@ -384,21 +384,21 @@
 ;;
 ;; Testing Summary
 ;; ----------------------------
-;; Expected Passess:        100
-;; Unexpected Passes:        10
-;; Expected Failures:        20
-;; Unexpected Failures:      25
-;; Total:                   155
+;; Expected Passess: 100
+;; Unexpected Passes: 10
+;; Expected Failures: 20
+;; Unexpected Failures: 25
+;; Total: 155
 (define (print-finalization runner)
-  (let ((pass-expected   (test-runner-pass-expected   runner))
+  (let ((pass-expected (test-runner-pass-expected runner))
         (pass-unexpected (test-runner-pass-unexpected runner))
-        (fail-expected   (test-runner-fail-expected   runner))
+        (fail-expected (test-runner-fail-expected runner))
         (fail-unexpected (test-runner-fail-unexpected runner)))
     (printf "~nTesting Summary~n")
     (printf "~a~n" (make-string 28 #\-))
-    (printf "Expected Passes:~24,8t~4d~n"      pass-expected)
-    (printf "Expected Failures:~24,8t~4d~n"    fail-expected)
-    (printf "Unexpected Passes:~24,8t~4d~n"    pass-unexpected)
+    (printf "Expected Passes:~24,8t~4d~n" pass-expected)
+    (printf "Expected Failures:~24,8t~4d~n" fail-expected)
+    (printf "Unexpected Passes:~24,8t~4d~n" pass-unexpected)
     (printf "Unexpected Failures: ~24,8t~4d~n" fail-unexpected)
     (printf "Total:~24,8t~4d~n"
             (+ pass-expected pass-unexpected
@@ -408,9 +408,9 @@
 
 ;; Calculates the current test number
 (define (current-test-number runner)
-  (+ (test-runner-pass-expected   runner)
+  (+ (test-runner-pass-expected runner)
      (test-runner-pass-unexpected runner)
-     (test-runner-fail-expected   runner)
+     (test-runner-fail-expected runner)
      (test-runner-fail-unexpected runner)))
 
 ;; This records the result of the previous test, whether it be an

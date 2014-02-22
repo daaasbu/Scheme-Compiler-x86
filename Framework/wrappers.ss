@@ -1,4 +1,4 @@
-library (Framework wrappers aux)
+(library (Framework wrappers aux)
   (export
     prim
     call

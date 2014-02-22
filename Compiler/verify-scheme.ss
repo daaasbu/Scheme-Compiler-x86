@@ -24,67 +24,53 @@
            (lambda (ls)
              (duplicate-labels? (map extract-suffix ls))))
 
+	 (define label-ls '())
+
          (define-parser parse-LverifyScheme LverifyScheme)
 
          (define-pass verify-scheme : LverifyScheme (x) -> LverifyScheme ()
            (Prog : Prog (x) -> Prog ()
                  [(letrec ([,l* ,[le*]] ...) ,bd)
+		  (set! label-ls (append l* label-ls))
                   (unless (suffix-list l*) (error who "Duplicate Labels"))
                    `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x l*)) le*)] ...) ,(Body bd l*))])
            (LambdaExpr : LambdaExpr (x env) -> LambdaExpr ()
-                       [(lambda () ,bd)  `(lambda () ,(Body bd env))])
+                       [(lambda (,uv* ...) ,bd)  `(lambda (,uv* ...) ,(Body bd (append uv* env)))])
            (Body : Body (x env) -> Body ()
                  [(locals (,uv* ...) ,tl)
                   (unless (suffix-list uv*) (error who "Duplicate uvar's"))
-                  `(locals (,uv* ...) ,(Tail tl (append uv* env) uv*))])
-           (Tail : Tail (x env env2) -> Tail ()
-                 [(begin ,ef* ... ,tl1)   `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Tail tl1 env env2))]
-                 [(,triv ,locrf* ...)
-;                  (unless (or (register? triv) (label? triv) (frame-var? triv))
-;                      (error who "triv must be a label or variable" triv))
-                  (if (or (uvar? triv) (label? triv))
-                      (unless (lookup triv env) (error who "unbound label"))) x]
-                 [(if ,pred ,tl1 ,tl2) (Pred pred env env2) (Tail tl1 env env2) (Tail tl2 env env2) x])
-           (Pred : Pred (x env env2) -> Pred ()
+                  `(locals (,uv* ...) ,(Tail tl (append uv* env)))])
+           (Tail : Tail (x env ) -> Tail ()
+                 [(begin ,ef* ... ,tl1)   `(begin ,(map (lambda (x) (Effect x env )) ef*) ... ,(Tail tl1 env ))]
+                 [,triv (Triv triv env) x]
+                 [(if ,pred ,tl1 ,tl2) (Pred pred env ) (Tail tl1 env ) (Tail tl2 env ) x]
+		 [(call ,val ,val* ...) (Value val env) (map (lambda (x) (Value x env)) val*) x]
+		 [(prim ,op ,val0 ,val1) x])
+           (Pred : Pred (x env ) -> Pred ()
                  [(true) x]
                  [(false) x]
-                 [(,relop ,triv1 ,triv2)
-                  (if (or (label? triv1) (uvar? triv1))
-                      (unless (lookup triv1 env) (error who "not in env")))
-                  (if (or (label? triv2) (uvar? triv2))
-                      (unless (lookup triv2 env) (error who "not in env")))
-;                  (unless (or (not (frame-var? triv1)) (not (frame-var? triv2)))
-;                          (error who "Two frame vars while using a relop"))
-;                  (if (integer? triv1)
-;                      (unless (int32? triv1) (error who "must use a 32 bit integer")))
-;                  (if (integer? triv2)
-;                      (unless (int32? triv2) (error who "must use a 32 bit integer")))
-;                  (if (and (integer? triv1) (register? triv2))
-;                      (error who "int32 must be the first arg to cmpq"))
+                 [(prim ,relop ,val0 ,val1) (Value val0 env) (Value val1 env)
                   x]
-                 [(if ,pred1 ,pred2 ,pred3) (Pred pred1 env env2) (Pred pred2 env env2) (Pred pred3 env env2) x]
-                 [(begin ,ef* ... ,pred) `(begin ,(map (lambda (x) (Effect x env env2)) ef*) ... ,(Pred pred env env2))])
-           (Effect : Effect (x env env2) -> Effect ()
-                   [(set! ,v ,triv)
-                    (if (uvar? v)  (unless (lookup v env) (error who "not in env")))
-                    (if (uvar? triv)  (unless (lookup triv env) (error who "not in env")))
-;                    (if (and (frame-var? v) (frame-var? triv))
-;                        (error who "Can't set! a frame variable to a frame variable" v triv))
-;                    (if (label? triv)
-;                        (unless (or (register? v) (label? v) (uvar? v)) ;;;;;changed this in a4 -> or label?/uvar?
-;                                (error who "If triv is a label, then var must be a register" v triv)))
-;                    (if (or (int32? triv) (int64? triv))
-;                        (unless (or (int32? triv) (and (register? v) (int64? triv)))
-;                                (error who "Triv not valid" triv)))
-                    x]
-                   [(set! ,v (,op ,triv1 ,triv2))
-                    (if (uvar? v)  (unless (lookup v env) (error who "not in env")))
-                    (if (uvar? triv1)  (unless (lookup triv1 env) (error who "not in env")))
-                    (if (uvar? triv2)  (unless (lookup triv2 env) (error who "not in env")))
+                 [(if ,pred1 ,pred2 ,pred3) (Pred pred1 env) (Pred pred2 env) (Pred pred3 env) x]
+                 [(begin ,ef* ... ,pred) `(begin ,(map (lambda (x) (Effect x env )) ef*) ... ,(Pred pred env ))])
+           (Effect : Effect (x env ) -> Effect ()
+                   [(set! ,uv ,val)
+                    (if (uvar? uv)  (unless (lookup uv env) (error who "not in env")))
+                   (Value val env) x]
+		   [(if ,pred0 ,ef0 ,ef1) (Pred pred0 env) (Effect ef0 env) (Effect ef1 env)  x]
+		   [(begin ,ef* ... ,ef) (map (lambda (x) (Effect x env)) ef*) (Effect ef env)  x]
+		    [(nop) x])
+	   (Value : Value (x env) -> Value ()
+		  [,triv (Triv triv env) x]
+		  [(if ,pred ,val0 ,val1) (Pred pred env) (Value val0 env) (Value val1 env) x]
+		  [(prim ,op ,val0 ,val1)
+                    (if  (eqv? op `sra)
+                        (unless (and  (integer? val1) (<= 0 val1) (>= 63 val1))
+                                (error who "sra out of bounds/not a number" val1))) (Value val0 env) (Value val1 env) x]
+		  [(begin ,ef* ... ,val) (map (lambda (x) (Effect x env)) ef*) (Value val env) x])
+	   (Triv : Triv (x env) ->  Triv ()
+		 [,uv (unless (lookup uv env) (error who "uvar not in env")) x]
+		 [,i i]
+		 [,l (unless (lookup l label-ls) (error who "label not in env")) x])))
 
-                    (if (eqv? op `sra)
-                        (unless (and (<= 0 triv2) (>= 63 triv2))
-                                (error who "sra out of bounds" triv2))) x]
-
-		   [(nop) x]))
-)
+	      
