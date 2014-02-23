@@ -42,12 +42,7 @@
 	       (lambda (exp)
 		 (nanopass-case (LremoveComplexOpera* Value) exp
 				[(prim ,op ,triv0 ,triv1) #t]
-				[else #f])))
- 
-	     (define nested2?
-	       (lambda (exp)
-		 (nanopass-case (LremoveComplexOpera* Tail) exp
-				[(prim ,op ,triv0 ,triv1) #t]
+				[,triv #t]
 				[else #f])))
 
 	     (define local-var-ls '())
@@ -103,23 +98,27 @@
 
                  [(if ,[pred1] ,[pred2] ,[pred3]) `(if ,pred1 ,pred2 ,pred3) ]
                  [(begin ,[ef*] ... ,[pred]) `(begin ,ef* ... ,pred)])
+
            (Effect : Effect (x) -> Effect ()
                    [(set! ,uv ,val) `(set! ,uv ,(Value val))] 
 		   [(if ,[pred0] ,[ef0] ,[ef1]) `(if ,pred0 ,ef0 ,ef1)]
 		   [(begin ,[ef*] ... ,[ef]) `(begin ,ef* ... ,ef)]
 		    [(nop) `(nop)])
+
 	   (Value : Value (x) -> Value ()
 		  [,triv (Triv triv)]
 		  [(if ,[pred] ,[val0] ,[val1])
-		   (begin (display "val0: ") (display val0) (newline) (display "val1: ") (display val1) (newline) (display "tests: ") (display (simple? val0)) (newline) (display (simple? val1)) (newline))
-		    (cond 
-		    [(and (not (nested? val1)) (not (nested? val0))) `(if ,pred ,val0 ,val1)]
-		    [(not (nested? val0)) (let ((VAR (make-var)))
-					    `(begin (set! ,VAR ,val1) (if ,pred ,val0 ,VAR)))]
-		    [(not (nested? val1)) (let ((VAR (make-var)))
+		   `(if ,pred ,val0 ,val1)]
+	#|	   (cond 
+		    [(and (nested? val1) (nested? val0)) `(if ,pred ,val0 ,val1)]
+		    [(nested? val0) (let ((VAR (make-var)))
+					      `(if ,pred ,val0 ,val1)))]
+				      
+		    [(nested? val1) (let ((VAR (make-var)))
 					    `(begin (set! ,VAR ,val0) (if ,pred ,VAR ,val1)))]
 		    [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (if ,pred ,VAR0 ,VAR1)))])]
-		  [(prim ,op ,[val0] ,[val1])
+		   |#
+		   [(prim ,op ,[val0] ,[val1])
 		   (cond 
 		    [(and (simple? val1) (simple? val0)) `(prim ,op ,val0 ,val1)]
 		    [(simple? val0) (let ((VAR (make-var)))

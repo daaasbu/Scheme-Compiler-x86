@@ -11,7 +11,7 @@
 ;; Load your passes from the files you wrote them in:
 (Compiler verify-scheme)
 (Compiler remove-complex-opera*)
-;(Compiler flatten-set!)
+(Compiler flatten-set!)
 ;(Compiler uncover-frame-conflict)
 ;(Compiler introduce-allocation-forms)
 ;(Compiler select-instructions)
@@ -43,7 +43,7 @@ thunk
 (define-compiler (p423-compile p423-step pass->wrapper pass->unparser parse-LverifyScheme)
 (verify-scheme)
 (remove-complex-opera*)
-;(flatten-set!)
+(flatten-set!)
 ;(uncover-frame-conflict)
 ;(introduce-allocation-forms)
 ;(iterate
