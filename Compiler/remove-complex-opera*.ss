@@ -16,60 +16,123 @@
 	       (lambda ()
 		 (let ((v (unique-name 'VAR)))
 		       (begin (set! VAR-ls (cons v VAR-ls)) v))))
-	     
+	     #|
 	     (define traverse*
 	       (lambda (prcr ls*)
 		 (map (lambda (x) (prcr x)) ls*)))
-
+|#
 	     (define simple?
 	       (lambda (exp)
 		 (or (integer? exp) (uvar? exp))))
 
 
 
-				
-	     
+	     (define Value*
+	       (lambda (val*)
+		 (with-output-language (LremoveComplexOpera* Effect)
+		 (if (null? val*) '()
+		     (let* ((first (Value (car val*)))
+			    (rest (cdr val*)) 
+			    (VAR (make-var))
+			    (set `(set! ,VAR , first)))
+		      (begin  (set! local-var-ls (cons (with-output-language (LremoveComplexOpera* Triv) VAR) local-var-ls)) (cons set (Value* rest))))))))
+		       
+
+	     (define nested?
+	       (lambda (exp)
+		 (nanopass-case (LremoveComplexOpera* Value) exp
+				[(prim ,op ,triv0 ,triv1) #t]
+				[else #f])))
+ 
+
+
+	     (define local-var-ls '())
+
+	     (define initialize 
+	       (lambda () 
+		 (set! local-var-ls '())))
+
+	     (define simple-ls
+	       (lambda (ls)
+		 (map simple? ls)))
+    
 	     )
 
-	   (Prog : Prog (x) -> Prog ()
+#|	   (Prog : Prog (x) -> Prog ()
 		 [(letrec ([,l* ,[le*]] ...) (locals (,uv* ...) (call ,val ,val* ...))) `(letrec ([,l* ,le*] ... ) (locals (,uv* ...) (call ,val ,val* ...)))])
-
+|#
+#|
+	   (LambdaExpr : LambdaExpr(x) -> LambdaExpr ()
+		       [(lambda (,uv* ...) ,[bd]) `(lambda (,uv* ...) ,bd)])
+|#
            (Body : Body (x) -> Body ()
-                 [(locals (,uv* ...) ,[tl]) (display "locals: ") (display (append VAR-ls uv*)) (newline) `(locals (,(append VAR-ls uv*) ...) ,tl)])
+                 [(locals (,uv* ...) ,[tl]) `(locals (,(append VAR-ls uv*) ...) ,tl)])
            (Tail : Tail (x) -> Tail ()
+	    
 		 [,triv `,triv]
-		 [(prim ,op ,[val0] ,[val1]) `(prim ,op ,val0 ,val1) ]
-		 [(call ,[val] ,[val*] ...) (display "variables: ") (display (cons val VAR-ls)) (newline)  `(call ,val ,VAR-ls ...)]
+		 [(prim ,op ,[val0] ,[val1]) 
+					       (cond 
+					       [(and (simple? val1) (simple? val0)) `(prim ,op ,val0 ,val1)]
+					       [(simple? val0)  (let ((VAR (make-var)))
+								 `(begin (set! ,VAR ,val1) (prim ,op ,val0 ,VAR)))]
+					       [(simple? val1)  (let ((VAR (make-var)))
+								 `(begin (set! ,VAR ,val0) (prim ,op ,VAR ,val1)))]
+					       
+					       [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (prim ,op ,VAR0 ,VAR1)))])]
+
+		 [(call ,[val] ,val* ...) (begin (initialize) (if (not (member #f (simple-ls val*))) 
+								  `(call ,val ,(map Value val*) ...) 
+								  (let* ((output (Value* val*)))
+								    `(begin ,output ... (call ,val ,local-var-ls)))))]  ;changed
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2)]
-		 [(begin ,ef* ... ,[tl1]) `(begin ,(traverse* Effect ef*) ... ,tl1)])
+		 [(begin ,[ef*] ... ,[tl1]) `(begin ,ef* ... ,tl1)])
            (Pred : Pred (x) -> Pred ()
                  [(true) `(true)]
-                 [(false) `(true)]
-                 [(prim ,relop ,[val0] ,[val1]) `(,relop ,val0 ,val1) ]
+                 [(false) `(false)]
+                 [(prim ,relop ,[val0] ,[val1])  (cond 
+					       [(and (simple? val1) (simple? val0)) `(,relop ,val0 ,val1)]
+					       [(simple? val0)  (let ((VAR (make-var)))
+								 `(begin (set! ,VAR ,val1) (,relop ,val0 ,VAR)))]
+					       [(simple? val1)  (let ((VAR (make-var)))
+								 `(begin (set! ,VAR ,val0) (,relop ,VAR ,val1)))]
+					       
+					       [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (,relop ,VAR0 ,VAR1)))])]
+
                  [(if ,[pred1] ,[pred2] ,[pred3]) `(if ,pred1 ,pred2 ,pred3) ]
-                 [(begin ,ef* ... ,[pred]) `(begin ,(traverse* Effect ef*) ,pred)])
+                 [(begin ,[ef*] ... ,[pred]) `(begin ,ef* ... ,pred)])
            (Effect : Effect (x) -> Effect ()
-                   [(set! ,uv ,[val]) `(set! ,uv ,val)] 
+                   [(set! ,uv ,val) `(set! ,uv ,(Value val))] 
 		   [(if ,[pred0] ,[ef0] ,[ef1]) `(if ,pred0 ,ef0 ,ef1)]
-		   [(begin ,ef* ... ,[ef]) `(begin ,(traverse* Effect ef*) ... ,ef)]
+		   [(begin ,[ef*] ... ,[ef]) `(begin ,ef* ... ,ef)]
 		    [(nop) `(nop)])
-	   (Value : Value (x) -> * ()
-		  [,triv `,triv]
-		  [(if ,[pred] ,[val0] ,[val1]) (in-context Effect `(begin (set! ,(make-var) (if ,pred ,val0 ,val1))))]
-		  [(prim ,op ,val0 ,val1)
+	   (Value : Value (x) -> Value ()
+		  [,triv (Triv triv)]
+		  [(if ,[pred] ,[val0] ,[val1])
+		   (begin (display "val0: ") (display val0) (newline) (display "val1: ") (display val1) (newline) (display "tests: ") (display (simple? val0)) (newline) (display (simple? val1)) (newline))
+		    (cond 
+		    [(and (nested? val1) (nested? val0)) `(if ,pred ,val0 ,val1)]
+		    [(nested? val0) (let ((VAR (make-var)))
+				      `(begin (set! ,VAR ,val1) (if ,pred ,val0 ,VAR)))]
+		    [(nested? val1) (let ((VAR (make-var)))
+				      `(begin (set! ,VAR ,val0) (if ,pred ,VAR ,val1)))]
+		  
+		    [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (if ,pred ,VAR0 ,VAR1)))])]
+		  [(prim ,op ,[val0] ,[val1])
 		   (cond 
 		    [(and (simple? val1) (simple? val0)) `(prim ,op ,val0 ,val1)]
-		    [(simple? val0) (let ((VAR (make-var))
-					  (flat (Value val1)))
-				     (in-context Value `(begin (set! ,VAR ,flat) ... (prim ,op ,val0 ,VAR))))]
-		    [(simple? val1) (let ((VAR (make-var))
-					  (flat (Value val0)))
-				      (in-context Value `(begin (set! ,VAR ,flat) ... (prim ,op ,VAR ,val1))))]
-
+		    [(simple? val0) (let ((VAR (make-var)))
+				       `(begin (set! ,VAR ,val1) (prim ,op ,val0 ,VAR)))]
+		    [(simple? val1) (let ((VAR (make-var)))
+				      `(begin (set! ,VAR ,val0) (prim ,op ,VAR ,val1)))]
+		    
 		    [else (let ((VAR0 (make-var))
-				(VAR1 (make-var))
-				(flat0 (Value val0))
-				(flat1 (Value val1)))
-				     (in-context Value `(begin  (set! ,VAR0 ,flat0) (set! ,VAR1 ,flat1) (prim ,op ,VAR0 ,VAR1))))])]
+ 				(VAR1 (make-var)))
+			    `(begin  (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (prim ,op ,VAR0 ,VAR1)))])]
 
-		  [(begin ,ef* ... ,[val]) (in-context Value `(begin ,(traverse* Effect ef*) ... ,val))])))
+		  [(begin ,[ef*] ... ,[val]) `(begin ,ef* ... ,val)]
+		  [else (error who "blah")])
+
+	   (Triv : Triv (x) -> Triv () 
+		 [,i `,i]
+		 [,l `,l]
+		 [,uv `,uv])))
