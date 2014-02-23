@@ -36,15 +36,19 @@
 			    (VAR (make-var))
 			    (set `(set! ,VAR , first)))
 		      (begin  (set! local-var-ls (cons (with-output-language (LremoveComplexOpera* Triv) VAR) local-var-ls)) (cons set (Value* rest))))))))
-		       
-
+		      
+ 
 	     (define nested?
 	       (lambda (exp)
 		 (nanopass-case (LremoveComplexOpera* Value) exp
 				[(prim ,op ,triv0 ,triv1) #t]
 				[else #f])))
  
-
+	     (define nested2?
+	       (lambda (exp)
+		 (nanopass-case (LremoveComplexOpera* Tail) exp
+				[(prim ,op ,triv0 ,triv1) #t]
+				[else #f])))
 
 	     (define local-var-ls '())
 
@@ -70,16 +74,15 @@
            (Tail : Tail (x) -> Tail ()
 	    
 		 [,triv `,triv]
-		 [(prim ,op ,[val0] ,[val1]) 
-					       (cond 
-					       [(and (simple? val1) (simple? val0)) `(prim ,op ,val0 ,val1)]
-					       [(simple? val0)  (let ((VAR (make-var)))
+		 [(prim ,op ,[val0] ,[val1]) (cond
+					      [(and (simple? val1) (simple? val0)) `(prim ,op ,val0 ,val1)]
+					      [(simple? val0)  (let ((VAR (make-var)))
 								 `(begin (set! ,VAR ,val1) (prim ,op ,val0 ,VAR)))]
-					       [(simple? val1)  (let ((VAR (make-var)))
+					      [(simple? val1)  (let ((VAR (make-var)))
 								 `(begin (set! ,VAR ,val0) (prim ,op ,VAR ,val1)))]
-					       
-					       [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (prim ,op ,VAR0 ,VAR1)))])]
-
+					      
+					      [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (prim ,op ,VAR0 ,VAR1)))])]
+		 
 		 [(call ,[val] ,val* ...) (begin (initialize) (if (not (member #f (simple-ls val*))) 
 								  `(call ,val ,(map Value val*) ...) 
 								  (let* ((output (Value* val*)))
@@ -110,12 +113,11 @@
 		  [(if ,[pred] ,[val0] ,[val1])
 		   (begin (display "val0: ") (display val0) (newline) (display "val1: ") (display val1) (newline) (display "tests: ") (display (simple? val0)) (newline) (display (simple? val1)) (newline))
 		    (cond 
-		    [(and (nested? val1) (nested? val0)) `(if ,pred ,val0 ,val1)]
-		    [(nested? val0) (let ((VAR (make-var)))
-				      `(begin (set! ,VAR ,val1) (if ,pred ,val0 ,VAR)))]
-		    [(nested? val1) (let ((VAR (make-var)))
-				      `(begin (set! ,VAR ,val0) (if ,pred ,VAR ,val1)))]
-		  
+		    [(and (not (nested? val1)) (not (nested? val0))) `(if ,pred ,val0 ,val1)]
+		    [(not (nested? val0)) (let ((VAR (make-var)))
+					    `(begin (set! ,VAR ,val1) (if ,pred ,val0 ,VAR)))]
+		    [(not (nested? val1)) (let ((VAR (make-var)))
+					    `(begin (set! ,VAR ,val0) (if ,pred ,VAR ,val1)))]
 		    [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (if ,pred ,VAR0 ,VAR1)))])]
 		  [(prim ,op ,[val0] ,[val1])
 		   (cond 
