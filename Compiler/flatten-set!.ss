@@ -8,6 +8,8 @@
 
          (define-parser parse-LflattenSet! LflattenSet!)
 
+	 (define-parser parse-LremoveComplexOpera* LremoveComplexOpera*)
+
          (define-pass flatten-set! : LremoveComplexOpera* (x) -> LflattenSet! ()
 	   (definitions 
 	     (with-output-language (LflattenSet! Effect)
@@ -20,6 +22,9 @@
 				[(prim ,op ,triv0 ,triv1) `(set! ,uv (,op ,triv0 ,triv1))])))))
 
 	   (Pred : Pred (x) -> Pred ())
+
+	   (Tail : Tail (x) -> Tail ())
+
            (Effect : Effect (x) -> Effect ()
 		   [(nop) `(nop)]
                    [(set! ,uv ,val) (resolve-set! uv val)])
@@ -27,7 +32,9 @@
 		  [,triv `,triv]
 		  [(if ,[pred] ,val0 ,val1) (let ((x (Value val0)) (y (Value val1)))
 						(in-context Tail `(if ,pred ,x ,y)))]
+
 		  [(prim ,op ,[triv0] ,[triv1]) (in-context Rhs `(,op ,triv0 ,triv1))]
-		  [(begin ,[ef*] ... ,val) (let ((x (Value val))) (in-context Effect `(begin ,ef* ... ,x)))])))
+		  [(begin ,[ef*] ... ,val) (let ((x (with-output-language (LflattenSet! Tail) `,(unparse-LremoveComplexOpera* val))))
+							    `(begin ,ef* ... ,x))])))
 
 	      
