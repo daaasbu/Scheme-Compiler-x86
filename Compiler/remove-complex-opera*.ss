@@ -15,12 +15,7 @@
 	     (define make-var
 	       (lambda ()
 		 (let ((v (unique-name 'VAR)))
-		       (begin (set! VAR-ls (cons v VAR-ls)) #;(display VAR-ls) v))))
-	     #|
-	     (define traverse*
-	       (lambda (prcr ls*)
-		 (map (lambda (x) (prcr x)) ls*)))
-|#
+		       (begin (set! VAR-ls (cons v VAR-ls)) v))))
 	     (define simple?
 	       (lambda (exp)
 		 (or (integer? exp) (uvar? exp))))
@@ -139,3 +134,5 @@
 		 [,i `,i]
 		 [,l `,l]
 		 [,uv `,uv])))
+
+

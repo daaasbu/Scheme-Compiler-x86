@@ -418,6 +418,7 @@
                            b.3
                            (prim + b.3 a.2)))))])
    (locals () (call fib$0 5)))
+
  (letrec ([if-test$1 (lambda ()
                        (locals
                          (x.5)
