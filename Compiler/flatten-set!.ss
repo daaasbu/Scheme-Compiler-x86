@@ -4,7 +4,7 @@
                  (source-grammar)
                  (Framework nanopass)
                  (Framework helpers))
-
+;;This pass goes from LremoveComplexOpera* to LflattenSet!, its main purpose is to push set!'s inside of begins and ifs.
 
 (define-pass flatten-set! : LremoveComplexOpera* (x) -> LflattenSet! ()
   (Effect : Effect (x) -> Effect ()

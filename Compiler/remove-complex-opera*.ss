@@ -7,7 +7,8 @@
 	  (Framework helpers))
 
 	 (define-parser parse-LremoveComplexOpera* LremoveComplexOpera*)
-
+;;This pass goes from LverifyScheme to LremoveComplexOpera*. Its purpose is to unnest prims and calls, and replace all nested operations by using set!'s to uvariables.
+;;It replaces all complex operations in call with uvars, and it unnests the complex calls, and set!'s them to uvars.
 	 (define-pass remove-complex-opera* : LverifyScheme (x) -> LremoveComplexOpera* ()
 	   (definitions
 	     (define VAR-ls '())
@@ -128,7 +129,7 @@
 			    `(begin  (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (prim ,op ,VAR0 ,VAR1)))])]
 
 		  [(begin ,[ef*] ... ,[val]) `(begin ,ef* ... ,val)]
-		  [else (error who "blah")])
+		  [else (error who "mistake in Value")])
 
 	   (Triv : Triv (x) -> Triv () 
 		 [,i `,i]

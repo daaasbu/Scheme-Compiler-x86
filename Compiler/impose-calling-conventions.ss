@@ -9,7 +9,13 @@
          (define-parser parse-LimposeCallingConventions LimposeCallingConventions)
 ; Helpers:
 ; parameter-registers, frame-pointer-register, return-value-register, and return-address-register
-         (define-pass impose-calling-conventions : LflattenSet! (x) -> LimposeCallingConventions ()
+ 
+
+;;This pass goes from LflattenSet! to LimposeCallingConventions. Its purpose is to make our code in the form that uncover register conflicts is expect. 
+;;So it goes through tail calls, and replace everything with frame-variables and parameter registers.
+
+
+        (define-pass impose-calling-conventions : LflattenSet! (x) -> LimposeCallingConventions ()
 	   (definitions
 
 #|	     
