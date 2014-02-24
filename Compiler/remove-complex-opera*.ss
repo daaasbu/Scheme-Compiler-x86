@@ -15,7 +15,7 @@
 	     (define make-var
 	       (lambda ()
 		 (let ((v (unique-name 'VAR)))
-		       (begin (set! VAR-ls (cons v VAR-ls)) v))))
+		       (begin (set! VAR-ls (cons v VAR-ls)) #;(display VAR-ls) v))))
 	     #|
 	     (define traverse*
 	       (lambda (prcr ls*)
@@ -56,16 +56,17 @@
 		 (map simple? ls)))
     
 	     )
-
-#|	   (Prog : Prog (x) -> Prog ()
-		 [(letrec ([,l* ,[le*]] ...) (locals (,uv* ...) (call ,val ,val* ...))) `(letrec ([,l* ,le*] ... ) (locals (,uv* ...) (call ,val ,val* ...)))])
-|#
 #|
+	   (Prog : Prog (x) -> Prog ()
+		 [(letrec ([,l* ,[le*]] ...) (locals (,uv* ...) (call ,val ,val* ...))) (begin (display "LOOP-Prog") `(letrec ([,l* ,le*] ... ) (locals (,uv* ...) (call ,val ,val* ...))))])
+
+
 	   (LambdaExpr : LambdaExpr(x) -> LambdaExpr ()
-		       [(lambda (,uv* ...) ,[bd]) `(lambda (,uv* ...) ,bd)])
+		       [(lambda (,uv* ...) ,[bd]) (begin (display "LOOP-LE") `(lambda (,uv* ...) ,bd))])
 |#
            (Body : Body (x) -> Body ()
-                 [(locals (,uv* ...) ,[tl]) `(locals (,(append VAR-ls uv*) ...) ,tl)])
+                 [(locals (,uv* ...) ,[tl]) `(locals (,(append uv* VAR-ls) ...) ,tl)])
+
            (Tail : Tail (x) -> Tail ()
 	    
 		 [,triv `,triv]
@@ -81,7 +82,8 @@
 		 [(call ,[val] ,val* ...) (begin (initialize) (if (not (member #f (simple-ls val*))) 
 								  `(call ,val ,(map Value val*) ...) 
 								  (let* ((output (Value* val*)))
-								    `(begin ,output ... (call ,val ,local-var-ls)))))]  ;changed
+								
+								   `(begin ,output ... (call ,val ,(reverse local-var-ls) ...)))))]  ;changed
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2)]
 		 [(begin ,[ef*] ... ,[tl1]) `(begin ,ef* ... ,tl1)])
            (Pred : Pred (x) -> Pred ()
@@ -96,7 +98,7 @@
 					       
 					       [else (let ((VAR0 (make-var)) (VAR1 (make-var))) `(begin (set! ,VAR0 ,val0) (set! ,VAR1 ,val1) (,relop ,VAR0 ,VAR1)))])]
 
-                 [(if ,[pred1] ,[pred2] ,[pred3]) `(if ,pred1 ,pred2 ,pred3) ]
+                 [(if ,[pred1] ,[pred2] ,[pred3]) `(if ,pred1 ,pred2 ,pred3)]
                  [(begin ,[ef*] ... ,[pred]) `(begin ,ef* ... ,pred)])
 
            (Effect : Effect (x) -> Effect ()

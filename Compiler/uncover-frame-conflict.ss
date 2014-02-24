@@ -9,7 +9,7 @@
 
          (define-parser parse-LuncoverFrameConflict LuncoverFrameConflict)
 
-         (define-pass uncover-frame-conflict : LverifyScheme (x) -> LuncoverFrameConflict ()
+         (define-pass uncover-frame-conflict : LimposeCallingConventions (x) -> LuncoverFrameConflict ()
            (definitions
 
              (define init-conflict-table
