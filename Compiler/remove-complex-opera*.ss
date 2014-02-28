@@ -19,19 +19,21 @@
 		       (begin (set! VAR-ls (cons v VAR-ls)) v))))
 	     (define simple?
 	       (lambda (exp)
-		 (or (integer? exp) (uvar? exp))))
+ 		 (or (integer? exp) (uvar? exp))))
 
 
+	     
 
 	     (define Value*
 	       (lambda (val*)
 		 (with-output-language (LremoveComplexOpera* Effect)
 		 (if (null? val*) '()
-		     (let* ((first (Value (car val*)))
-			    (rest (cdr val*)) 
-			    (VAR (make-var))
-			    (set `(set! ,VAR , first)))
-		      (begin  (set! local-var-ls (cons (with-output-language (LremoveComplexOpera* Triv) VAR) local-var-ls)) (cons set (Value* rest))))))))
+		    (let* ((first (Value (car val*)))
+			    (rest (cdr val*)))
+		       (if (or (uvar? first) (number? first))
+			   (begin (set! local-var-ls (cons first local-var-ls)) (Value* rest))
+		     (let* ((VAR (make-var))
+			    (set `(set! ,VAR , first))) (begin  (set! local-var-ls (cons (with-output-language (LremoveComplexOpera* Triv) VAR) local-var-ls)) (cons set (Value* rest))))))))))
 		      
  
 	     (define nested?
@@ -60,8 +62,8 @@
 	   (LambdaExpr : LambdaExpr(x) -> LambdaExpr ()
 		       [(lambda (,uv* ...) ,[bd]) (begin (display "LOOP-LE") `(lambda (,uv* ...) ,bd))])
 |#
-           (Body : Body (x) -> Body ()
-                 [(locals (,uv* ...) ,[tl]) `(locals (,(append uv* VAR-ls) ...) ,tl)])
+           (Body : Body (x) -> Body ()    
+		 [(locals (,uv* ...) ,tl) (begin (set! VAR-ls '()) (let ((t (Tail tl)))  `(locals (,(append uv* VAR-ls) ...) ,t)))])
 
            (Tail : Tail (x) -> Tail ()
 	    
@@ -78,7 +80,7 @@
 		 [(call ,[val] ,val* ...) (begin (initialize) (if (not (member #f (simple-ls val*))) 
 								  `(call ,val ,(map Value val*) ...) 
 								  (let* ((output (Value* val*)))
-								
+								    (display local-var-ls)
 								   `(begin ,output ... (call ,val ,(reverse local-var-ls) ...)))))]  ;changed
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2)]
 		 [(begin ,[ef*] ... ,[tl1]) `(begin ,ef* ... ,tl1)])
@@ -135,5 +137,8 @@
 		 [,i `,i]
 		 [,l `,l]
 		 [,uv `,uv])))
+
+
+
 
 
