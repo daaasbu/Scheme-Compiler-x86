@@ -1,0 +1,5 @@
+Every expected pass is passing except for 26, and I think the error is in remove-complex-opera*. It has something to do with how we are making an extra set! when we shouldn't. 
+
+All expected failures are failing in verify-scheme.
+
+I worked with Kristyn, Erik, and Ryan on the entire assignment. 

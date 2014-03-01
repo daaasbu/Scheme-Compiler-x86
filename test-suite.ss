@@ -1,924 +1,1210 @@
-(invalid 3
-    (begin rax 5)
-    (letrec () (set! rax 5))
-    (letrec () (set! rax 5) (r15))
-    (letrec () (begin (set! rax 5) (r15)))
-    (letrec ([f$5 (lambda (rax)
-                    (locals ()
-                      (begin (r15))))])
-      (locals () (f$5)))
-    (letrec () (letrec () (begin (set! rax 5) (r15 rax))))
-    (letrec (locals () (begin (set! rax 5) (r15 rax))))
-    (letrec () (locals (x.1) (begin (set! x.1 5.5) x.1)))
-    (letrec ([double$1 (lambda ()
-                         (locals (x.1)
-                           (begin (set! x.1 (+ x.1 x.1)) x.1)))]
-             [triple$1 (lambda ()
-                         (locals (x.2)
-                           (begin (set! x.2 (* x.2 3)) x.2)))])
-      (locals () (double$1)))
-    (letrec ([foo (lambda ()
-                    (locals (a.1) (begin (set! a.1 5) a.1)))])
-      (locals () (foo)))
-    (letrec ([foo$0 (lambda ()
-                      (locals (a.1)
-                        (begin (set! a.1 5) a.1)))])
-      (locals () (bar$1))) 
-    (letrec ([even?$1 (lambda (n.1)
-                        (locals ()
-                          (if (= 0 n.1)
-                              1
-                              (odd?$2 (- n.1 1)))))]
-             [odd?$2 (lambda (n.1)
-                       (locals ()
-                         (if (= 0 n.1)
-                             0
-                             (even?$1 (- n.1 1)))))])
-      (locals ()
-        (if (odd?$1 17)
-            10
-            0)))
-    (letrec () (locals () (begin (set! x 5) x))) 
-    (letrec () (locals () 9223372036854775808))
-    (letrec () (locals () -9223372036854775809))
-    (letrec () 
-      (locals (x.1) (begin (set! x.1 0) (+ x.1 9223372036854775808))))
-    (letrec ()
-      (locals (x.1) (begin (set! x.1 0) (+ x.1 -9223372036854775809))))
-    (letrec () (locals () 12.5))
-    (letrec () (locals (x.1) (begin (set! x.1 (sra x.1 -1)) x.1)))
-    (letrec () (locals (x.1) (begin (set! x.1 (sra x.1 64)) x.1)))
-    (letrec () (locals (x.1 y.2) (begin (set! x.1 (sra x.1 y.2)) x.1)))
-    (letrec ([foo$1 (lambda () (locals () 7))])
-      (locals (x.1 y.2) (begin (set! x.1 (sra x.1 foo$1)) x.1)))
-    (letrec () (locals (x.1) (begin (set! x.1 (/ x.1 5)) x.1)))
-    (letrec ()
-      (locals (x.1 y.2 z.3)
-        (begin (set! x.1 y.2) (if (+ z.3 5) (x.1) (z.3)))))
-    (letrec ()
-      (locals (x.1)
-        (begin
-          (set! x.1 0)
-          (if (= x.1 0) (nop) x.1)
-          (set! x.1 5)
-          x.1)))
-    (letrec ([foo$1 (lambda () (locals () 7))])
-      (locals (x.1)
-        (begin
-          (set! x.1 0)
-          (if (= x.1 0) (nop) (> x.1 0))
-          (set! x.1 5)
-          x.1)))
-    (letrec ()
-      (locals (x.1)
-        (begin (if (begin (set! x.1 10) x.1) x.1 x.1))))
-    (letrec ([foo$1 (lambda () (locals () 7))])
-      (locals (x.1)
-        (begin (if (begin (set! x.1 10) (foo$1)) (foo$1) (foo$1)))))
-    (letrec ()
-      (locals (x.1)
-        (begin (if (begin (set! x.1 10) (nop)) x.1 x.1))))
-    (letrec ()
-      (locals (x.1 y.2 z.3)
-        (begin
-          (if (begin (set! x.1 10) (set! y.2 10) (= x.1 y.2))
-              (set! z.3 10)
-              x.1))))
-    (letrec ()
-      (locals (x.1 y.2)
-        (begin
-          (set! x.1 0)
-          (if (if (= x.1 0) (nop) (= y.2 0))
-              (set! x.1 10)
-              (set! y.2 10))
-          x.1)))
-    (letrec ([main$0 (lambda ()
-                       (locals (x.1 y.2 z.3)
-                         (begin
-                           (set! x.1 y.2)
-                           (if (+ z.3 5) x.1 y.2))))])
-      (locals () (main$0)))
-    (letrec ([main$0 (lambda ()
-                       (locals (x.1)
-                         (begin
-                           (if (begin (set! x.1 10) (nop))
-                               x.1
-                               x.1))))])
-      (locals () (main$0)))
-    (letrec ([foo$1 (lambda () (locals () 7))]
-             [main$0 (lambda ()
-                       (locals (x.1)
-                         (begin
-                           (if (begin (set! x.1 10) (nop))
-                               (foo$1)
-                               (foo$1)))))])
-      (locals () (main$0)))
-    (letrec ([main$0 (lambda ()
-                       (locals (x.1 y.2)
-                         (begin
-                           (if (begin
-                                 (set! x.1 10)
-                                 (set! y.2 10)
-                                 (= x.1 y.2))
-                               (set! x.1 10)
-                               x.1))))])
-      (locals () (main$0)))
-    (letrec ([main$0 (lambda ()
-                       (locals (x.1)
-                         (if (= 0 x.1) (f$0) (f$1))))]
-             [f$0 (lambda () (locals () 5))]
-             [f$1 (lambda () (locals () 6))])
-      (locals () (main$0)))
-    (letrec ()
-      (locals (x.1) (if (= x.1 9223372036854775808) x.1 x.1)))
-    (letrec ()
-      (locals (x.1)
-        (if (= x.1 -9223372036854775809) x.1 x.1)))
-    (letrec ()
-      (locals (x.1) (if (= x.1 12.5) x.1 x.1)))
-    (letrec ()
-      (locals (x.1)
-        (begin
-          (set! x.1 7)
-          (if (if (< x.1 10) (if (< x.1 5) (false) (true)) #f)
-              (begin (set! x.1 (* x.1 x.1)) x.1)
-              x.1))))
-    (letrec ()
-      (locals ()
-        (begin (set! x.5 (+ x.5 x.5)) x.5)))
-    (letrec ()
-      (locals (x z.5)
-        (begin
-          (set! x.1 5)
-          (set! z.5 6)
-          (set! z.5 (+ z.5 x.1))
-          z.5)))
-    (letrec ()
-      (locals (x.1 y.2)
-        (begin
-          (set! x.1 5)
-          (set! y.2 2)
-          (set! z.5 (+ z.5 x.1))
-          (set! z.5 (+ z.5 x.1))
-          z.5)))
-    (letrec ([id$1 (lambda (x.1) (locals () x.1))])
-      (locals (x.1 y.2)
-        (set! x.1 5)
-        (id$1 x.1)))
-    (letrec ()
-      (locals (x.1 y.2 z.1)
-        (begin
-          (set! x.1 5)
-          (set! y.2 rax)
-          (set! z.1 (+ x.1 y.2))
-          z.1)))
-    (letrec ()
-      (locals (x.1 y.2)
-        (begin
-          (set! x.1 (true))
-          (if x.1 (set! y.2 5) (set! y.2 100))
-          y.2)))
-    (letrec ()
-      (locals (x.1 y.2 acc.3)
-        (begin
-          (set! x.1 5)
-          (set! y.2 0)
-          (set! acc.3 0)
-          loop$1
-          (set! acc.3 (+ acc.3 x.1))
-          (set! x.1 (- x.1 1))
-          (if (= y.2 x.1) (nop) (loop$1))
-          (set! rax acc.3)
-          (r15 rax))))
-    (letrec ([double$1 (lambda ()
-                         (locals (x.3)
-                           (begin
-                             (set! x.3 10)
-                             (set! x.3 (+ x.3 x.3))
-                             x.3)))])
-      (locals (x.1 y.2 fv0)
-        (begin
-          (set! x.1 4)
-          (set! y.2 0)
-          (set! fv0 (+ x.1 y.2))
-          (double$1 r15 rbp fv0))))
-    (letrec ()
-      (locals (x.1)
-        (begin
-          (set! x.1 rax)
-          (+ x.1 5))))
-    (letrec ()
-      (locals (x.1)
-        (begin
-          (set! x.1 4)
-          (set! x.1 (+ x.1 rax))
-           x.1)))
-    (letrec ()
-      (locals (x.1)
-        (begin
-          (set! x.1 4)
-          (+ x.1 rax)))))
+(invalid 
+ 3 (begin rax 5) (letrec () (set! rax 5))
+ (letrec () (set! rax 5) (r15))
+ (letrec () (begin (set! rax 5) (r15)))
+ (letrec ([f$5 (lambda (rax) (locals () (begin (r15))))])
+   (locals () (call f$5)))
+ (letrec () (letrec () (begin (set! rax 5) (r15 rax))))
+ (letrec (locals () [begin (set! rax 5) (r15 rax)]))
+ (letrec () (locals (x.1) (begin (set! x.1 5.5) x.1)))
+ (letrec ([double$1 (lambda ()
+                      (locals
+                        (x.1)
+                        (begin (set! x.1 (prim + x.1 x.1)) x.1)))]
+          [triple$1 (lambda ()
+                      (locals
+                        (x.2)
+                        (begin (set! x.2 (prim * x.2 3)) x.2)))])
+   (locals () (call double$1)))
+ (letrec ([foo (lambda ()
+                 (locals (a.1) (begin (set! a.1 5) a.1)))])
+   (locals () (foo)))
+ (letrec ([foo$0 (lambda ()
+                   (locals (a.1) (begin (set! a.1 5) a.1)))])
+   (locals () (call bar$1)))
+ (letrec ([even?$1 (lambda (n.1)
+                     (locals
+                       ()
+                       (if (prim = 0 n.1)
+                           1
+                           (call odd?$2 (prim - n.1 1)))))]
+          [odd?$2 (lambda (n.1)
+                    (locals
+                      ()
+                      (if (prim = 0 n.1)
+                          0
+                          (call even?$1 (prim - n.1 1)))))])
+   (locals () (if (call odd?$1 17) 10 0)))
+ (letrec () (locals () (begin (set! x 5) x)))
+ (letrec () (locals () 9223372036854775808))
+ (letrec () (locals () -9223372036854775809))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin (set! x.1 0) (prim + x.1 9223372036854775808))))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin (set! x.1 0) (prim + x.1 -9223372036854775809))))
+ (letrec () (locals () 12.5))
+ (letrec ()
+   (locals (x.1) (begin (set! x.1 (prim sra x.1 -1)) x.1)))
+ (letrec ()
+   (locals (x.1) (begin (set! x.1 (prim sra x.1 64)) x.1)))
+ (letrec ()
+   (locals
+     (x.1 y.2)
+     (begin (set! x.1 (prim sra x.1 y.2)) x.1)))
+ (letrec ([foo$1 (lambda () (locals () 7))])
+   (locals
+     (x.1 y.2)
+     (begin (set! x.1 (prim sra x.1 foo$1)) x.1)))
+ (letrec () (locals (x.1) (begin (set! x.1 (/ x.1 5)) x.1)))
+ (letrec ()
+   (locals
+     (x.1 y.2 z.3)
+     (begin (set! x.1 y.2) (if (prim + z.3 5) (x.1) (z.3)))))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin
+       (set! x.1 0)
+       (if (prim = x.1 0) (nop) x.1)
+       (set! x.1 5)
+       x.1)))
+ (letrec ([foo$1 (lambda () (locals () 7))])
+   (locals
+     (x.1)
+     (begin
+       (set! x.1 0)
+       (if (prim = x.1 0) (nop) (prim > x.1 0))
+       (set! x.1 5)
+       x.1)))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin (if (begin (set! x.1 10) x.1) x.1 x.1))))
+ (letrec ([foo$1 (lambda () (locals () 7))])
+   (locals
+     (x.1)
+     (begin
+       (if (begin (set! x.1 10) (call foo$1))
+           (call foo$1)
+           (call foo$1)))))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin (if (begin (set! x.1 10) (nop)) x.1 x.1))))
+ (letrec ()
+   (locals
+     (x.1 y.2 z.3)
+     (begin
+       (if (begin (set! x.1 10) (set! y.2 10) (prim = x.1 y.2))
+           (set! z.3 10)
+           x.1))))
+ (letrec ()
+   (locals
+     (x.1 y.2)
+     (begin
+       (set! x.1 0)
+       (if (if (prim = x.1 0) (nop) (prim = y.2 0))
+           (set! x.1 10)
+           (set! y.2 10))
+       x.1)))
+ (letrec ([main$0 (lambda ()
+                    (locals
+                      (x.1 y.2 z.3)
+                      (begin
+                        (set! x.1 y.2)
+                        (if (prim + z.3 5) x.1 y.2))))])
+   (locals () (call main$0)))
+ (letrec ([main$0 (lambda ()
+                    (locals
+                      (x.1)
+                      (begin (if (begin (set! x.1 10) (nop)) x.1 x.1))))])
+   (locals () (call main$0)))
+ (letrec ([foo$1 (lambda () (locals () 7))]
+          [main$0 (lambda ()
+                    (locals
+                      (x.1)
+                      (begin
+                        (if (begin (set! x.1 10) (nop))
+                            (call foo$1)
+                            (call foo$1)))))])
+   (locals () (call main$0)))
+ (letrec ([main$0 (lambda ()
+                    (locals
+                      (x.1 y.2)
+                      (begin
+                        (if (begin
+                              (set! x.1 10)
+                              (set! y.2 10)
+                              (prim = x.1 y.2))
+                            (set! x.1 10)
+                            x.1))))])
+   (locals () (call main$0)))
+ (letrec ([main$0 (lambda ()
+                    (locals
+                      (x.1)
+                      (if (prim = 0 x.1) (call f$0) (call f$1))))]
+          [f$0 (lambda () (locals () 5))]
+          [f$1 (lambda () (locals () 6))])
+   (locals () (call main$0)))
+ (letrec ()
+   (locals
+     (x.1)
+     (if (prim = x.1 9223372036854775808) x.1 x.1)))
+ (letrec ()
+   (locals
+     (x.1)
+     (if (prim = x.1 -9223372036854775809) x.1 x.1)))
+ (letrec () (locals (x.1) (if (prim = x.1 12.5) x.1 x.1)))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin
+       (set! x.1 7)
+       (if (if (prim < x.1 10)
+               (if (prim < x.1 5) (false) (true))
+               #f)
+           (begin (set! x.1 (prim * x.1 x.1)) x.1)
+           x.1))))
+ (letrec ()
+   (locals () (begin (set! x.5 (prim + x.5 x.5)) x.5)))
+ (letrec ()
+   (locals
+     (x z.5)
+     (begin
+       (set! x.1 5)
+       (set! z.5 6)
+       (set! z.5 (prim + z.5 x.1))
+       z.5)))
+ (letrec ()
+   (locals
+     (x.1 y.2)
+     (begin
+       (set! x.1 5)
+       (set! y.2 2)
+       (set! z.5 (prim + z.5 x.1))
+       (set! z.5 (prim + z.5 x.1))
+       z.5)))
+ (letrec ([id$1 (lambda (x.1) (locals () x.1))])
+   (locals (x.1 y.2) (set! x.1 5) (call id$1 x.1)))
+ (letrec ()
+   (locals
+     (x.1 y.2 z.1)
+     (begin
+       (set! x.1 5)
+       (set! y.2 rax)
+       (set! z.1 (prim + x.1 y.2))
+       z.1)))
+ (letrec ()
+   (locals
+     (x.1 y.2)
+     (begin
+       (set! x.1 (true))
+       (if x.1 (set! y.2 5) (set! y.2 100))
+       y.2)))
+ (letrec ()
+   (locals
+     (x.1 y.2 acc.3)
+     (begin
+       (set! x.1 5)
+       (set! y.2 0)
+       (set! acc.3 0)
+       loop$1
+       (set! acc.3 (prim + acc.3 x.1))
+       (set! x.1 (prim - x.1 1))
+       (if (prim = y.2 x.1) (nop) (call loop$1))
+       (set! rax acc.3)
+       (r15 rax))))
+ (letrec ([double$1 (lambda ()
+                      (locals
+                        (x.3)
+                        (begin
+                          (set! x.3 10)
+                          (set! x.3 (prim + x.3 x.3))
+                          x.3)))])
+   (locals
+     (x.1 y.2 fv0)
+     (begin
+       (set! x.1 4)
+       (set! y.2 0)
+       (set! fv0 (prim + x.1 y.2))
+       (call double$1 r15 rbp fv0))))
+ (letrec ()
+   (locals (x.1) (begin (set! x.1 rax) (prim + x.1 5))))
+ (letrec ()
+   (locals
+     (x.1)
+     (begin (set! x.1 4) (set! x.1 (prim + x.1 rax)) x.1)))
+ (letrec ()
+   (locals (x.1) (begin (set! x.1 4) (prim + x.1 rax)))))
 
 (valid 
-    (letrec () (locals () 7))
-    (letrec () (locals () (+ 5 7)))
-    (letrec () (locals () (+ 7 (* 5 7))))
-    (letrec () (locals () (* (+ 2 4) (+ (+ 6 7) 4))))
-    (letrec () 
-      (locals () 
-        (if (= (+ 7 (* 2 4)) (- 20 (+ (+ 1 1) (+ (+ 1 1) 1))))
-            (+ 1 (+ 1 (+ 1 (+ 1 (+ 1 10)))))
-            0)))
-    (letrec ()
-      (locals (a.1)
-        (begin
-          (set! a.1 10)
-          (if (< 7 a.1)
-              (nop)
-              (set! a.1 (+ a.1 a.1)))
-          a.1)))
-    (letrec ()
-      (locals (a.1)
-        (begin
-          (set! a.1 5)
-          (if (< 5 a.1)
-              a.1
-              (+ a.1 a.1)))))
-    (letrec ()
-      (locals (c.1 a.2)
-        (begin
-          (set! a.2 5)
-          (set! c.1 10)
-          (if (< a.2 c.1) a.2 c.1))))
-     (letrec ()
-       (locals (a.1)
-         (begin
-           (set! a.1 5)
-           (if (< a.1 10) (set! a.1 (* a.1 10)) (nop))
-           a.1)))
-
-    (letrec ([f$0 (lambda (x.1) (locals () (+ 1 x.1)))])
-      (locals (f.1) (f$0 (begin (set! f.1 3) (+ f.1 1)))))
-    (letrec ([f$0 (lambda (h.1 v.2) (locals () (* h.1 v.2)))]
-             [k$1 (lambda (x.1) (locals () (+ x.1 5)))]
-             [g$2 (lambda (x.1) (locals () (+ 1 x.1)))])
-      (locals (x.4 g.1)
-        (begin
-          (set! x.4 15)
-          (k$1 (g$2 (begin (set! g.1 3) (f$0 g.1 x.4)))))))
-    (letrec ([one$1 (lambda (n.1) 
-                      (locals () (if (= 0 n.1) 1 (one$1 (- n.1 1)))))])
-       (locals () (one$1 13)))
-    (letrec ([a$0 (lambda (u.1 v.2 w.3 x.4) 
-                    (locals () 
-                      (if (= u.1 0) 
-                          (b$1 v.2 w.3 x.4)
-                          (a$0 (- u.1 1) v.2 w.3 x.4))))]
-             [b$1 (lambda (q.1 r.2 x.4)
-                    (locals (p.3)
-                      (begin
-                        (set! p.3 (* q.1 r.2))
-                        (e$3 (* q.1 r.2) p.3 x.4))))]
-             [c$2 (lambda (x.1) (locals () (* 5 x.1)))]
-             [e$3 (lambda (n.1 p.3 x.4)
-                    (locals ()
-                      (if (= n.1 0) 
-                          (c$2 p.3)
-                          (o$4 (- n.1 1) p.3 x.4))))]
-             [o$4 (lambda (n.1 p.3 x.4) 
-                    (locals ()
-                      (if (= 0 n.1)
-                          (c$2 x.4)
-                          (e$3 (- n.1 1) p.3 x.4))))])
-      (locals (x.4)
-        (begin
-          (set! x.4 5)
-          (a$0 3 2 1 x.4))))
-    (letrec ([f$0 (lambda () (locals () 80))])
-      (locals (a.1 b.2)
-        (begin
-          (set! a.1 (f$0))
-          (set! b.2 (f$0))
-          (* a.1 b.2))))
-    (letrec ([f$0 (lambda () (locals () 80))]
-             [g$1 (lambda () (locals () 50))])
-      (locals (a.1 b.2)
-        (begin
-          (set! a.1 (f$0))
-          (set! b.2 (g$1))
-          (* a.1 b.2))))
-    (letrec ([f$0 (lambda (x.1) (locals () (+ x.1 1)))]
-             [g$1 (lambda (y.2) (locals () (f$0 (f$0 y.2))))])
-      (locals () (+ (f$0 1) (g$1 1))))
-    (letrec ([fact$0 (lambda (n.1) 
-                       (locals () 
-                         (if (= n.1 0) 1 (* n.1 (fact$0 (- n.1 1))))))])
-      (locals () (fact$0 10)))
-     (letrec ()
-       (locals (a.1 b.2)
-         (begin
-           (set! a.1 5)
-           (set! b.2 1)
-           (set! b.2 (* b.2 a.1))
-           (set! a.1 (- a.1 1))
-           (set! b.2 (* b.2 a.1))
-           (set! a.1 (- a.1 1))
-           (set! b.2 (* b.2 a.1))
-           (set! a.1 (- a.1 1))
-           (set! b.2 (* b.2 a.1))
-           b.2)))
-     (letrec ()
-       (locals (n.1 a.2)
-         (begin
-           (set! n.1 5)
-           (begin
-             (set! a.2 1)
-             (begin
-               (set! a.2 (* a.2 n.1))
-               (begin
-                 (set! n.1 (- n.1 1))
-                 (begin
-                   (set! a.2 (* a.2 n.1))
+ (letrec () (locals () 7))
+ (letrec () (locals () (prim + 5 7)))
+ (letrec () (locals () (prim + 7 (prim * 5 7))))
+ (letrec ()
+   (locals () (prim * (prim + 2 4) (prim + (prim + 6 7) 4))))
+ (letrec ()
+   (locals
+     ()
+     (if (prim
+           =
+           (prim + 7 (prim * 2 4))
+           (prim - 20 (prim + (prim + 1 1) (prim + (prim + 1 1) 1))))
+         (prim + 1 (prim + 1 (prim + 1 (prim + 1 (prim + 1 10)))))
+         0)))
+ (letrec ()
+   (locals
+     (a.1)
+     (begin
+       (set! a.1 10)
+       (if (prim < 7 a.1) (nop) (set! a.1 (prim + a.1 a.1)))
+       a.1)))
+ (letrec ()
+   (locals
+     (a.1)
+     (begin
+       (set! a.1 5)
+       (if (prim < 5 a.1) a.1 (prim + a.1 a.1)))))
+ (letrec ()
+   (locals
+     (c.1 a.2)
+     (begin
+       (set! a.2 5)
+       (set! c.1 10)
+       (if (prim < a.2 c.1) a.2 c.1))))
+ (letrec ()
+   (locals
+     (a.1)
+     (begin
+       (set! a.1 5)
+       (if (prim < a.1 10) (set! a.1 (prim * a.1 10)) (nop))
+       a.1)))
+ (letrec ([f$0 (lambda (x.1) (locals () (prim + 1 x.1)))])
+   (locals
+     (f.1)
+     (call f$0 (begin (set! f.1 3) (prim + f.1 1)))))
+ (letrec ([f$0 (lambda (h.1 v.2)
+                 (locals () (prim * h.1 v.2)))]
+          [k$1 (lambda (x.1) (locals () (prim + x.1 5)))]
+          [g$2 (lambda (x.1) (locals () (prim + 1 x.1)))])
+   (locals
+     (x.4 g.1)
+     (begin
+       (set! x.4 15)
+       (call
+         k$1
+         (call g$2 (begin (set! g.1 3) (call f$0 g.1 x.4)))))))
+ (letrec ([one$1 (lambda (n.1)
+                   (locals
+                     ()
+                     (if (prim = 0 n.1) 1 (call one$1 (prim - n.1 1)))))])
+   (locals () (call one$1 13)))
+ (letrec ([a$0 (lambda (u.1 v.2 w.3 x.4)
+                 (locals
+                   ()
+                   (if (prim = u.1 0)
+                       (call b$1 v.2 w.3 x.4)
+                       (call a$0 (prim - u.1 1) v.2 w.3 x.4))))]
+          [b$1 (lambda (q.1 r.2 x.4)
+                 (locals
+                   (p.3)
                    (begin
-                     (set! n.1 (- n.1 1))
+                     (set! p.3 (prim * q.1 r.2))
+                     (call e$3 (prim * q.1 r.2) p.3 x.4))))]
+          [c$2 (lambda (x.1) (locals () (prim * 5 x.1)))]
+          [e$3 (lambda (n.1 p.3 x.4)
+                 (locals
+                   ()
+                   (if (prim = n.1 0)
+                       (call c$2 p.3)
+                       (call o$4 (prim - n.1 1) p.3 x.4))))]
+          [o$4 (lambda (n.1 p.3 x.4)
+                 (locals
+                   ()
+                   (if (prim = 0 n.1)
+                       (call c$2 x.4)
+                       (call e$3 (prim - n.1 1) p.3 x.4))))])
+   (locals (x.4) (begin (set! x.4 5) (call a$0 3 2 1 x.4))))
+ (letrec ([f$0 (lambda () (locals () 80))])
+   (locals
+     (a.1 b.2)
+     (begin
+       (set! a.1 (call f$0))
+       (set! b.2 (call f$0))
+       (prim * a.1 b.2))))
+ (letrec ([f$0 (lambda () (locals () 80))]
+          [g$1 (lambda () (locals () 50))])
+   (locals
+     (a.1 b.2)
+     (begin
+       (set! a.1 (call f$0))
+       (set! b.2 (call g$1))
+       (prim * a.1 b.2))))
+ (letrec ([f$0 (lambda (x.1) (locals () (prim + x.1 1)))]
+          [g$1 (lambda (y.2) (locals () (call f$0 (call f$0 y.2))))])
+   (locals () (prim + (call f$0 1) (call g$1 1))))
+ (letrec ([fact$0 (lambda (n.1)
+                    (locals
+                      ()
+                      (if (prim = n.1 0)
+                          1
+                          (prim * n.1 (call fact$0 (prim - n.1 1))))))])
+   (locals () (call fact$0 10)))
+ (letrec ()
+   (locals
+     (a.1 b.2)
+     (begin
+       (set! a.1 5)
+       (set! b.2 1)
+       (set! b.2 (prim * b.2 a.1))
+       (set! a.1 (prim - a.1 1))
+       (set! b.2 (prim * b.2 a.1))
+       (set! a.1 (prim - a.1 1))
+       (set! b.2 (prim * b.2 a.1))
+       (set! a.1 (prim - a.1 1))
+       (set! b.2 (prim * b.2 a.1))
+       b.2)))
+ (letrec ()
+   (locals
+     (n.1 a.2)
+     (begin
+       (set! n.1 5)
+       (begin
+         (set! a.2 1)
+         (begin
+           (set! a.2 (prim * a.2 n.1))
+           (begin
+             (set! n.1 (prim - n.1 1))
+             (begin
+               (set! a.2 (prim * a.2 n.1))
+               (begin
+                 (set! n.1 (prim - n.1 1))
+                 (begin
+                   (set! a.2 (prim * a.2 n.1))
+                   (begin
+                     (set! n.1 (prim - n.1 1))
+                     (begin (set! a.2 (prim * a.2 n.1)) a.2)))))))))))
+ (letrec ([double$0 (lambda (a.1)
+                      (locals () (prim + a.1 a.1)))])
+   (locals () (call double$0 10)))
+ (letrec ([double$1 (lambda (x.1)
+                      (locals () (prim * x.1 2)))])
+   (locals () (begin (call double$1 5))))
+ (letrec ()
+   (locals
+     (x.5 y.10)
+     (begin
+       (set! x.5
+         (begin (set! y.10 10) (set! x.5 15) (prim * y.10 x.5)))
+       x.5)))
+ (letrec ([f$0 (lambda (x.1) (locals () (prim + 1 x.1)))]
+          [g$1 (lambda (x.1) (locals () (prim - x.1 1)))]
+          [t$2 (lambda (x.1) (locals () (prim - x.1 1)))]
+          [j$3 (lambda (x.1) (locals () (prim - x.1 1)))]
+          [i$4 (lambda (x.1) (locals () (prim - x.1 1)))]
+          [h$5 (lambda (x.1) (locals () (prim - x.1 1)))])
+   (locals
+     (x.1 a.2 b.3 c.4)
+     (begin
+       (set! x.1 80)
+       (set! a.2 (call f$0 x.1))
+       (set! b.3 (call g$1 x.1))
+       (set! c.4 (call h$5 (call i$4 (call j$3 (call t$2 x.1)))))
+       (prim * a.2 (prim * b.3 (prim + c.4 0))))))
+ (letrec ([fact$0 (lambda (n.1)
+                    (locals
+                      (t.2 t.3)
+                      (if (prim = n.1 0)
+                          1
+                          (begin
+                            (set! t.2 (prim - n.1 1))
+                            (set! t.3 (call fact$0 t.2))
+                            (prim * n.1 t.3)))))])
+   (locals () (call fact$0 10)))
+ (letrec ([fib$0 (lambda (n.1)
+                   (locals
+                     ()
+                     (if (if (prim = 0 n.1) (true) (prim = 1 n.1))
+                         1
+                         (prim
+                           +
+                           (call fib$0 (prim - n.1 1))
+                           (call fib$0 (prim - n.1 2))))))])
+   (locals () (call fib$0 10)))
+ (letrec ([even$0 (lambda (n.1)
+                    (locals
+                      ()
+                      (if (prim = n.1 0) 1 (call odd$1 (prim - n.1 1)))))]
+          [odd$1 (lambda (n.1)
+                   (locals
+                     ()
+                     (if (prim = n.1 0) 0 (call even$0 (prim - n.1 1)))))])
+   (locals () (call even$0 17)))
+ (letrec ()
+   (locals
+     (x.1 y.2 result.3)
+     (begin
+       (set! result.3
+         (prim
+           +
+           (if (begin (set! x.1 5) (set! y.2 10) (prim < 11 x.1))
+               (prim + x.1 y.2)
+               (prim + y.2 100))
+           (begin (set! x.1 10) (set! y.2 20) (prim * x.1 y.2))))
+       result.3)))
+ (letrec () (locals (x.5) (begin (set! x.5 5) x.5)))
+ (letrec ()
+   (locals
+     (x.5 y.6)
+     (begin (set! x.5 5) (set! y.6 6) (prim + x.5 y.6))))
+ (letrec ([div$0 (lambda (x.1)
+                   (locals
+                     ()
                      (begin
-                       (set! a.2 (* a.2 n.1))
+                       (set! x.1 (prim sra x.1 1))
+                       (call div$1 x.1))))]
+          [div$1 (lambda (result.1) (locals () result.1))])
+   (locals
+     (label-temp.1)
+     (begin (set! label-temp.1 div$0) (call label-temp.1 64))))
+#; (letrec ([expt$0 (lambda (n.1 m.2)
+                    (locals
+                      ()
+                      (if (prim = m.2 1)
+                          n.1
+                          (prim * n.1 (call expt$0 n.1 (prim - m.2 1))))))]
+          [div$1 (lambda (n.1 d.2)
+                   (locals
+                     ()
+                     (call div-helper$2 31 (prim - (prim * 2 n.1) d.2)
+                       (prim * d.2 (call expt$0 2 32)) 0)))]
+          [div-helper$2 (lambda (i.1 p.2 d.3 q.4)
+                          (locals
+                            ()
+                            (if (prim > 0 i.1)
+                                q.4
+                                (if (prim >= p.2 0)
+                                    (call div-helper$2 (prim - i.1 1)
+                                      (prim - (prim * 2 p.2) d.3) d.3
+                                      (prim logor (call expt$0 2 i.1) q.4))
+                                    (call div-helper$2 (prim - i.1 1)
+                                      (prim
+                                        -
+                                        (prim * 2 (prim + p.2 d.3))
+                                        d.3)
+                                      d.3 q.4)))))])
+   (locals () (call div$1 153 17)))
+ (letrec ([setbit3$0 (lambda (x.1)
+                       (locals
+                         ()
+                         (begin
+                           (set! x.1 (prim logor x.1 8))
+                           (call return$1 x.1))))]
+          [return$1 (lambda (x.1) (locals () (begin x.1)))])
+   (locals () (begin (call setbit3$0 1))))
+ (letrec ([zero?$0 (lambda (n.1)
+                     (locals
+                       (x.5)
                        (begin
-                         (set! n.1 (- n.1 1))
-                         (begin
-                           (set! a.2 (* a.2 n.1))
-                           a.2)))))))))))
-     (letrec ([double$0 (lambda (a.1)
-                          (locals () (+ a.1 a.1)))])
-       (locals () (double$0 10)))
-     (letrec ([double$1 (lambda (x.1)
-                          (locals ()
-                            (* x.1 2)))])
-       (locals () (begin (double$1 5))))
-     (letrec ()
-       (locals (x.5 y.10)
-         (begin 
-           (set! x.5 (begin (set! y.10 10) (set! x.5 15) (* y.10 x.5)))
-           x.5)))
-
-    (letrec ([f$0 (lambda (x.1) (locals () (+ 1 x.1)))]
-             [g$1 (lambda (x.1) (locals () (- x.1 1)))]
-             [t$2 (lambda (x.1) (locals () (- x.1 1)))]
-             [j$3 (lambda (x.1) (locals () (- x.1 1)))]
-             [i$4 (lambda (x.1) (locals () (- x.1 1)))]
-             [h$5 (lambda (x.1) (locals () (- x.1 1)))])
-      (locals (x.1 a.2 b.3 c.4)
-        (begin
-          (set! x.1 80)
-          (set! a.2 (f$0 x.1))
-          (set! b.3 (g$1 x.1))
-          (set! c.4 (h$5 (i$4 (j$3 (t$2 x.1)))))
-          (* a.2 (* b.3 (+ c.4 0))))))
-    (letrec ([fact$0 (lambda (n.1)
-                       (locals (t.2 t.3)
-                         (if (= n.1 0)
-                             1
-                             (begin
-                               (set! t.2 (- n.1 1))
-                               (set! t.3 (fact$0 t.2))
-                               (* n.1 t.3)))))])
-      (locals () (fact$0 10)))
-    (letrec ([fib$0 (lambda (n.1)
-                      (locals ()
-                        (if (if (= 0 n.1) (true) (= 1 n.1))
-                            1
-                            (+ (fib$0 (- n.1 1)) (fib$0 (- n.1 2))))))])
-      (locals () (fib$0 10)))
-    (letrec ([even$0 (lambda (n.1)
-                       (locals ()
-                         (if (= n.1 0)
-                             1
-                             (odd$1 (- n.1 1)))))]
-             [odd$1 (lambda (n.1)
-                      (locals ()
-                        (if (= n.1 0)
-                            0
-                            (even$0 (- n.1 1)))))])
-      (locals () (even$0 17)))
-     (letrec ()
-       (locals (x.1 y.2 result.3)
-         (begin
-           (set! result.3 (+ (if (begin 
-                                   (set! x.1 5) 
-                                   (set! y.2 10)
-                                   (< 11 x.1))
-                                 (+ x.1 y.2)
-                                 (+ y.2 100))
-                             (begin
-                               (set! x.1 10)
-                               (set! y.2 20)
-                               (* x.1 y.2))))
-           result.3)))
-     (letrec ()
-       (locals (x.5) 
-         (begin (set! x.5 5) x.5)))
-     (letrec ()
-       (locals (x.5 y.6)
-         (begin
-           (set! x.5 5)
-           (set! y.6 6)
-           (+ x.5 y.6))))
-     (letrec ([div$0 (lambda (x.1)
-                       (locals ()
-                         (begin 
-                           (set! x.1 (sra x.1 1)) 
-                           (div$1 x.1))))]
-              [div$1 (lambda (result.1)
-                       (locals () result.1))])
-       (locals (label-temp.1)
-         (begin
-           (set! label-temp.1 div$0)
-           (label-temp.1 64))))
-     ;; Slow division
-     (letrec ([expt$0 (lambda (n.1 m.2)
-                        (locals ()
-                          (if (= m.2 1)
-                              n.1
-                              (* n.1 (expt$0 n.1 (- m.2 1))))))]
-              [div$1 (lambda (n.1 d.2)
-                       (locals ()
-                         (div-helper$2 31 (- (* 2 n.1) d.2) 
-                                       (* d.2 (expt$0 2 32)) 0)))]
-              [div-helper$2 (lambda (i.1 p.2 d.3 q.4)
-                              (locals ()
-                                (if (> 0 i.1)
-                                    q.4
-                                    (if (>= p.2 0)
-                                        (div-helper$2 (- i.1 1)
-                                                      (- (* 2 p.2) d.3)
-                                                      d.3
-                                                      (logor (expt$0 2 i.1)
-                                                             q.4))
-                                        (div-helper$2 (- i.1 1)
-                                                      (- (* 2 (+ p.2 d.3)) d.3)
-                                                      d.3
-                                                      q.4)))))])
-       (locals () (div$1 153 17)))
-     (letrec ([setbit3$0 (lambda (x.1)
-                           (locals ()
-                             (begin
-                               (set! x.1 (logor x.1 8))
-                               (return$1 x.1))))]
-              [return$1 (lambda (x.1)
-                          (locals ()
-                            (begin x.1)))])
-       (locals ()
-         (begin (setbit3$0 1))))
-     (letrec ([zero?$0 (lambda (n.1)
-                         (locals (x.5)
-                           (begin
-                             (set! x.5 0)
-                             (set! x.5 (- x.5 n.1))
-                             (set! x.5 (sra x.5 63))
-                             (set! x.5 (logand x.5 1))
-                             (return$1 x.5))))]
-              [return$1 (lambda (x.5)
-                          (locals () x.5))])
-       (locals () (zero?$0 5)))
-     (letrec ([sqr-double$0 (lambda (z.5)
-                              (locals ()
-                                (begin
-                                  (set! z.5 (* z.5 z.5))
-                                  (double$1 z.5))))]
-              [double$1 (lambda (w.4)
-                          (locals ()
+                         (set! x.5 0)
+                         (set! x.5 (prim - x.5 n.1))
+                         (set! x.5 (prim sra x.5 63))
+                         (set! x.5 (prim logand x.5 1))
+                         (call return$1 x.5))))]
+          [return$1 (lambda (x.5) (locals () x.5))])
+   (locals () (call zero?$0 5)))
+ (letrec ([sqr-double$0 (lambda (z.5)
+                          (locals
+                            ()
                             (begin
-                              (set! w.4 (+ w.4 w.4))
-                              (return$3 w.4))))]
-              [return$3 (lambda (result.1)
-                          (locals () result.1))])
-       (locals () (begin (sqr-double$0 3) (sqr-double$0 5))))
-     ;; test interaction of already assigned frame-vars and
-     ;; register allocator
-     (letrec ([square$1 (lambda (x.1)
-                          (locals ()
-                            (begin (* x.1 x.1))))])
-       (locals () (square$1 7)))
-    ;;; Make sure effect ordering is preserved
-    (letrec ([sum$1 (lambda (x.1 y.2 z.3 w.4)
-                      (locals ()
-                        (+ x.1 (+ y.2 (+ z.3 w.4)))))])
-      (locals (a.1)
-        (sum$1 (begin (set! a.1 1) a.1)
-               (begin (set! a.1 2) a.1)
-               (begin (set! a.1 3) a.1)
-               (begin (set! a.1 4) a.1))))
-   ; test nontail calls w/several arguments
-    (letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
-                    (locals ()
-                      (if (= n.2 0)
-                          (+ (* a.3 (* x.6 x.6)) (+ (* b.4 x.6) c.5))
-                          (+ (f$1 (sra n.2 3)
-                                  (+ a.3 (logand n.2 4))
-                                  (+ b.4 (logand n.2 2))
-                                  (+ c.5 (logand n.2 1))
-                                  x.6)
-                             1))))])
-      (locals () (f$1 16434824 1 0 -1 7)))
-    (letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
-                    (locals ()
-                      (if (= n.2 0)
-                          (+ (* a.3 (* x.6 x.6)) (+ (* b.4 x.6) c.5))
-                          (- (f$1 (sra n.2 3)
-                                  (+ a.3 (logand n.2 4))
-                                  (+ b.4 (logand n.2 2))
-                                  (+ c.5 (logand n.2 1))
-                                  x.6)
-                             (g$0 n.2 a.3 b.4 c.5)))))]
-             [g$0 (lambda (n.7 a.8 b.9 c.10)
-                    (locals () (+ (- n.7 a.8) (- b.9 c.10))))])
-      (locals () (f$1 16434824 1 0 -1 7)))
-    (letrec ([square$0 (lambda (n.1) (locals () (* n.1 n.1)))])
-      (locals () (square$0 10)))
-    (letrec ([fact$0 (lambda (n.1)
-                       (locals ()
-                         (fact$1 n.1 1)))]
-             [fact$1 (lambda (n.1 a.2)
-                       (locals ()
-                         (if (= n.1 0)
-                             a.2
-                             (fact$1 (- n.1 1) (* n.1 a.2)))))])
-      (locals () (fact$0 10)))
-    (letrec ([gcd$0 (lambda (x.1 y.2)
-                      (locals ()
-                        (if (= y.2 0) 
-                            x.1 
-                            (gcd$0 (if (> x.1 y.2) (- x.1 y.2) x.1)
-                                   (if (> x.1 y.2) y.2 (- y.2 x.1))))))])
-      (locals () (gcd$0 1071 1029)))
-
-    (letrec ([sub1$1 (lambda (n.1) (locals () (- n.1 1)))]
-             [fib$0 (lambda (n.1)
-                      (locals ()
-                        (if (= 0 n.1)
-                            0
-                            (if (= 1 n.1)
-                                1
-                                (+ (fib$0 (sub1$1 n.1))
-                                   (fib$0 (sub1$1 (sub1$1 n.1))))))))])
-      (locals () (fib$0 10)))
-    (letrec ([ack$0 (lambda (m.1 n.2)
-                      (locals (tmp.3)
-                        (if (= m.1 0)
-                            (+ n.2 1)
-                            (if (if (> m.1 0) (= n.2 0) (false))
-                                (ack$0 (- m.1 1) 1)
-                                (begin
-                                  (set! tmp.3 (ack$0 m.1 (- n.2 1)))
-                                  (ack$0 (- m.1 1) tmp.3))))))])
-      (locals () (ack$0 2 4)))
-    (letrec ([ack$0 (lambda (m.1 n.2)
-                      (locals ()
-                        (if (= m.1 0)
-                            (+ n.2 1)
-                            (if (if (> m.1 0) (= n.2 0) (false))
-                                (ack$0 (- m.1 1) 1)
-                                (ack$0 (- m.1 1) (ack$0 m.1 (- n.2 1)))))))])
-      (locals () (ack$0 2 4)))
-    (letrec ([fib$0 (lambda (n.1) (locals () (fib$1 n.1 0 1)))]
-             [fib$1 (lambda (n.1 a.2 b.3)
-                      (locals ()
-                        (if (= n.1 0)
-                            a.2
-                            (fib$1 (- n.1 1) b.3 (+ b.3 a.2)))))])
-      (locals () (fib$0 5)))
-    (letrec ([if-test$1 (lambda ()
-                           (locals (x.5)
-                             (* (if (begin (set! x.5 5) (= x.5 5))
-                                    (+ x.5 10)
-                                    (- x.5 10)) 10)))])
-       (locals () (if-test$1)))
-    (letrec ([if-test$2 (lambda ()
-                           (locals (x.5)
+                              (set! z.5 (prim * z.5 z.5))
+                              (call double$1 z.5))))]
+          [double$1 (lambda (w.4)
+                      (locals
+                        ()
+                        (begin
+                          (set! w.4 (prim + w.4 w.4))
+                          (call return$3 w.4))))]
+          [return$3 (lambda (result.1) (locals () result.1))])
+   (locals
+     ()
+     (begin (call sqr-double$0 3) (call sqr-double$0 5))))
+ (letrec ([square$1 (lambda (x.1)
+                      (locals () (begin (prim * x.1 x.1))))])
+   (locals () (call square$1 7)))
+ (letrec ([sum$1 (lambda (x.1 y.2 z.3 w.4)
+                   (locals
+                     ()
+                     (prim + x.1 (prim + y.2 (prim + z.3 w.4)))))])
+   (locals
+     (a.1)
+     (call sum$1 (begin (set! a.1 1) a.1)
+       (begin (set! a.1 2) a.1) (begin (set! a.1 3) a.1)
+       (begin (set! a.1 4) a.1))))
+ (letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
+                 (locals
+                   ()
+                   (if (prim = n.2 0)
+                       (prim
+                         +
+                         (prim * a.3 (prim * x.6 x.6))
+                         (prim + (prim * b.4 x.6) c.5))
+                       (prim
+                         +
+                         (call f$1 (prim sra n.2 3)
+                           (prim + a.3 (prim logand n.2 4))
+                           (prim + b.4 (prim logand n.2 2))
+                           (prim + c.5 (prim logand n.2 1)) x.6)
+                         1))))])
+   (locals () (call f$1 16434824 1 0 -1 7)))
+ (letrec ([f$1 (lambda (n.2 a.3 b.4 c.5 x.6)
+                 (locals
+                   ()
+                   (if (prim = n.2 0)
+                       (prim
+                         +
+                         (prim * a.3 (prim * x.6 x.6))
+                         (prim + (prim * b.4 x.6) c.5))
+                       (prim
+                         -
+                         (call f$1 (prim sra n.2 3)
+                           (prim + a.3 (prim logand n.2 4))
+                           (prim + b.4 (prim logand n.2 2))
+                           (prim + c.5 (prim logand n.2 1)) x.6)
+                         (call g$0 n.2 a.3 b.4 c.5)))))]
+          [g$0 (lambda (n.7 a.8 b.9 c.10)
+                 (locals () (prim + (prim - n.7 a.8) (prim - b.9 c.10))))])
+   (locals () (call f$1 16434824 1 0 -1 7)))
+ (letrec ([square$0 (lambda (n.1)
+                      (locals () (prim * n.1 n.1)))])
+   (locals () (call square$0 10)))
+ (letrec ([fact$0 (lambda (n.1)
+                    (locals () (call fact$1 n.1 1)))]
+          [fact$1 (lambda (n.1 a.2)
+                    (locals
+                      ()
+                      (if (prim = n.1 0)
+                          a.2
+                          (call
+                            fact$1
+                            (prim - n.1 1)
+                            (prim * n.1 a.2)))))])
+   (locals () (call fact$0 10)))
+ (letrec ([gcd$0 (lambda (x.1 y.2)
+                   (locals
+                     ()
+                     (if (prim = y.2 0)
+                         x.1
+                         (call
+                           gcd$0
+                           (if (prim > x.1 y.2) (prim - x.1 y.2) x.1)
+                           (if (prim > x.1 y.2) y.2 (prim - y.2 x.1))))))])
+   (locals () (call gcd$0 1071 1029)))
+ (letrec ([sub1$1 (lambda (n.1) (locals () (prim - n.1 1)))]
+          [fib$0 (lambda (n.1)
+                   (locals
+                     ()
+                     (if (prim = 0 n.1)
+                         0
+                         (if (prim = 1 n.1)
+                             1
+                             (prim
+                               +
+                               (call fib$0 (call sub1$1 n.1))
+                               (call
+                                 fib$0
+                                 (call sub1$1 (call sub1$1 n.1))))))))])
+   (locals () (call fib$0 10)))
+ (letrec ([ack$0 (lambda (m.1 n.2)
+                   (locals
+                     (tmp.3)
+                     (if (prim = m.1 0)
+                         (prim + n.2 1)
+                         (if (if (prim > m.1 0) (prim = n.2 0) (false))
+                             (call ack$0 (prim - m.1 1) 1)
                              (begin
-                               (set! x.5 (if (begin
-                                               (set! x.5 7)
-                                               (if (< x.5 1)
-                                                   (false)
-                                                   (< x.5 10)))
-                                           (* x.5 2)
-                                           (+ x.5 5)))
-                               x.5)))])
-       (locals () (if-test$2)))
-    (letrec ([if-test$3 (lambda (n.1)
-                           (locals ()
-                             (begin
-                               (if (if (= n.1 0)
+                               (set! tmp.3 (call ack$0 m.1 (prim - n.2 1)))
+                               (call ack$0 (prim - m.1 1) tmp.3))))))])
+   (locals () (call ack$0 2 4)))
+ (letrec ([ack$0 (lambda (m.1 n.2)
+                   (locals
+                     ()
+                     (if (prim = m.1 0)
+                         (prim + n.2 1)
+                         (if (if (prim > m.1 0) (prim = n.2 0) (false))
+                             (call ack$0 (prim - m.1 1) 1)
+                             (call
+                               ack$0
+                               (prim - m.1 1)
+                               (call ack$0 m.1 (prim - n.2 1)))))))])
+   (locals () (call ack$0 2 4)))
+ (letrec ([fib$0 (lambda (n.1)
+                   (locals () (call fib$1 n.1 0 1)))]
+          [fib$1 (lambda (n.1 a.2 b.3)
+                   (locals
+                     ()
+                     (if (prim = n.1 0)
+                         a.2
+                         (call
+                           fib$1
+                           (prim - n.1 1)
+                           b.3
+                           (prim + b.3 a.2)))))])
+   (locals () (call fib$0 5)))
+ (letrec ([if-test$1 (lambda ()
+                       (locals
+                         (x.5)
+                         (prim
+                           *
+                           (if (begin (set! x.5 5) (prim = x.5 5))
+                               (prim + x.5 10)
+                               (prim - x.5 10))
+                           10)))])
+   (locals () (call if-test$1)))
+ (letrec ([if-test$2 (lambda ()
+                       (locals
+                         (x.5)
+                         (begin
+                           (set! x.5
+                             (if (begin
+                                   (set! x.5 7)
+                                   (if (prim < x.5 1)
+                                       (false)
+                                       (prim < x.5 10)))
+                                 (prim * x.5 2)
+                                 (prim + x.5 5)))
+                           x.5)))])
+   (locals () (call if-test$2)))
+ (letrec ([if-test$3 (lambda (n.1)
+                       (locals
+                         ()
+                         (begin
+                           (if (if (prim = n.1 0)
+                                   (true)
+                                   (if (prim = n.1 1)
                                        (true)
-                                       (if (= n.1 1) (true) (= n.1 2)))
-                                   (* n.1 5)
-                                   (- n.1 5)))))])
-       (locals () (if-test$3 2)))
-    (letrec ([if-test$4 (lambda (x.5)
-                           (locals ()
-                             (begin
-                               (* (if (if (= x.5 10) (false) (true))
-                                      (+ x.5 10)
-                                      (- x.5 2))
-                                  10))))])
-      (locals () (if-test$4 2)))
-    (letrec ([if-test$5 (lambda (n.1 x.2 y.3)
-                           (locals ()
-                             (begin
-                               (if (= n.1 0)
-                                   (set! x.2 (+ x.2 y.3))
-                                   (set! y.3 (+ y.3 x.2)))
-                               (set! x.2 (+ x.2 n.1))
-                               (if (if (= n.1 y.3) (false) (true))
-                                   (+ n.1 x.2)
-                                   (+ n.1 y.3)))))])
-       (locals () (begin (if-test$5 1 1 1))))
-    (letrec ([if-test$6 (lambda (n.1)
-                           (locals (x.2 y.3)
-                             (begin
-                               (set! x.2 1)
-                               (begin
-                                 (set! y.3 1)
-                                 (if (= n.1 0)
-                                     (set! x.2 (+ x.2 y.3))
-                                     (set! y.3 (+ y.3 x.2)))
-                                 (set! x.2 (+ x.2 n.1)))
-                               (if (if (= n.1 y.3) (false) (true))
-                                   (set! n.1 (+ n.1 x.2))
-                                   (set! n.1 (+ n.1 y.3)))
-                               (+ x.2 n.1))))])
-       (locals () (if-test$6 1)))
-    (letrec ()
-       (locals (x.1 y.2 z.3)
-         (begin
-           (set! x.1 0)
-           (set! y.2 1)
-           (if (if (= x.1 0) (= y.2 1) (false))
-               (set! z.3 5)
-               (begin (set! z.3 5) (set! z.3 (+ z.3 z.3))))
-           z.3)))
-    (letrec ()
-       (locals (a.1 b.2 c.3)
-         (begin
-           (set! a.1 0)
-           (set! b.2 0)
-           (if (if (= a.1 0) (= b.2 1) (false))
-               (set! c.3 5)
-               (begin (set! c.3 5) (set! c.3 (+ c.3 c.3))))
-           c.3)))
-    (letrec ([main$0 (lambda (x.1 y.2)
-                       (locals (z.3)
+                                       (prim = n.1 2)))
+                               (prim * n.1 5)
+                               (prim - n.1 5)))))])
+   (locals () (call if-test$3 2)))
+ (letrec ([if-test$4 (lambda (x.5)
+                       (locals
+                         ()
                          (begin
-                           (if (if (= x.1 1) (true) (= y.2 1))
-                               (set! z.3 1)
-                               (set! z.3 0))
-                           (* z.3 5))))])
-      (locals () (main$0 1 0)))
-    (letrec ([main$0 (lambda (a.1 b.2)
-                       (locals (c.3)
+                           (prim
+                             *
+                             (if (if (prim = x.5 10) (false) (true))
+                                 (prim + x.5 10)
+                                 (prim - x.5 2))
+                             10))))])
+   (locals () (call if-test$4 2)))
+ (letrec ([if-test$5 (lambda (n.1 x.2 y.3)
+                       (locals
+                         ()
                          (begin
-                           (set! c.3 
-                             (if (if (= a.1 1) (true) (= b.2 1))
-                                 1
-                                 0))
-                           (+ c.3 5))))])
-      (locals () (main$0 0 1)))
-    (letrec ([main$0 (lambda (a.1 b.2)
-                       (locals ()
+                           (if (prim = n.1 0)
+                               (set! x.2 (prim + x.2 y.3))
+                               (set! y.3 (prim + y.3 x.2)))
+                           (set! x.2 (prim + x.2 n.1))
+                           (if (if (prim = n.1 y.3) (false) (true))
+                               (prim + n.1 x.2)
+                               (prim + n.1 y.3)))))])
+   (locals () (begin (call if-test$5 1 1 1))))
+ (letrec ([if-test$6 (lambda (n.1)
+                       (locals
+                         (x.2 y.3)
                          (begin
-                           (if (if (= a.1 1) (= b.2 1) (true))
-                               (set! a.1 1)
-                               (set! b.2 0))
-                           (set! b.2 (* b.2 10))
-                           (set! a.1 (+ a.1 b.2))
-                           a.1)))])
-       (locals () (main$0 0 1)))
-    (letrec ([main$0 (lambda (a.1 b.2)
-                       (locals ()
-                         (if (if (= a.1 1) (= b.2 1) (true)) 1 0)))])
-      (locals () (main$0 1 0)))
-    (letrec ([main$0 (lambda (a.1 b.2)
-                       (locals ()
-                         (if (if (= a.1 1) (= b.2 1) (true)) 1 0)))])
-      (locals () (main$0 0 0)))
-    (letrec ()
-       (locals (a.1 b.2)
+                           (set! x.2 1)
+                           (begin
+                             (set! y.3 1)
+                             (if (prim = n.1 0)
+                                 (set! x.2 (prim + x.2 y.3))
+                                 (set! y.3 (prim + y.3 x.2)))
+                             (set! x.2 (prim + x.2 n.1)))
+                           (if (if (prim = n.1 y.3) (false) (true))
+                               (set! n.1 (prim + n.1 x.2))
+                               (set! n.1 (prim + n.1 y.3)))
+                           (prim + x.2 n.1))))])
+   (locals () (call if-test$6 1)))
+ (letrec ()
+   (locals
+     (x.1 y.2 z.3)
+     (begin
+       (set! x.1 0)
+       (set! y.2 1)
+       (if (if (prim = x.1 0) (prim = y.2 1) (false))
+           (set! z.3 5)
+           (begin (set! z.3 5) (set! z.3 (prim + z.3 z.3))))
+       z.3)))
+ (letrec ()
+   (locals
+     (a.1 b.2 c.3)
+     (begin
+       (set! a.1 0)
+       (set! b.2 0)
+       (if (if (prim = a.1 0) (prim = b.2 1) (false))
+           (set! c.3 5)
+           (begin (set! c.3 5) (set! c.3 (prim + c.3 c.3))))
+       c.3)))
+ (letrec ([main$0 (lambda (x.1 y.2)
+                    (locals
+                      (z.3)
+                      (begin
+                        (if (if (prim = x.1 1) (true) (prim = y.2 1))
+                            (set! z.3 1)
+                            (set! z.3 0))
+                        (prim * z.3 5))))])
+   (locals () (call main$0 1 0)))
+ (letrec ([main$0 (lambda (a.1 b.2)
+                    (locals
+                      (c.3)
+                      (begin
+                        (set! c.3
+                          (if (if (prim = a.1 1) (true) (prim = b.2 1))
+                              1
+                              0))
+                        (prim + c.3 5))))])
+   (locals () (call main$0 0 1)))
+ (letrec ([main$0 (lambda (a.1 b.2)
+                    (locals
+                      ()
+                      (begin
+                        (if (if (prim = a.1 1) (prim = b.2 1) (true))
+                            (set! a.1 1)
+                            (set! b.2 0))
+                        (set! b.2 (prim * b.2 10))
+                        (set! a.1 (prim + a.1 b.2))
+                        a.1)))])
+   (locals () (call main$0 0 1)))
+ (letrec ([main$0 (lambda (a.1 b.2)
+                    (locals
+                      ()
+                      (if (if (prim = a.1 1) (prim = b.2 1) (true))
+                          1
+                          0)))])
+   (locals () (call main$0 1 0)))
+ (letrec ([main$0 (lambda (a.1 b.2)
+                    (locals
+                      ()
+                      (if (if (prim = a.1 1) (prim = b.2 1) (true))
+                          1
+                          0)))])
+   (locals () (call main$0 0 0)))
+ (letrec ()
+   (locals
+     (a.1 b.2)
+     (begin
+       (set! a.1 1)
+       (set! b.2 1)
+       (if (if (prim = a.1 1) (prim = b.2 1) (true)) 1 0))))
+ (letrec ()
+   (locals
+     (n.1 a.2 b.3 c.4)
+     (begin
+       (set! n.1 1)
+       (begin
+         (set! a.2 2)
          (begin
-           (set! a.1 1)
-           (set! b.2 1)
-           (if (if (= a.1 1) (= b.2 1) (true)) 1 0))))
-    (letrec ()
-      (locals (n.1 a.2 b.3 c.4)
-        (begin
-          (set! n.1 1)
-          (begin
-            (set! a.2 2)
-            (begin
-              (set! b.3 3)
-              (set! n.1 (+ n.1 (if (= (+ n.1 b.3) b.3) 5 10)))
-              (set! n.1 (+ n.1 b.3)))
-            (set! n.1 (+ n.1 a.2)))
-          (+ n.1 n.1))))
-    (letrec ()
-       (locals (a.1 b.2 c.3 d.4 e.5)
-         (begin
-           (set! a.1 1)
-           (set! b.2 2)
-           (set! c.3 3)
-           (set! d.4 4)
-           (set! e.5 5)
-           (+ (+ (+ (+ e.5 d.4) c.3) b.2) a.1))))
-    (letrec ()
-       (locals (a.1 b.2 c.3 d.4 e.5 f.6)
-         (begin
-           (set! a.1 1)
-           (set! b.2 2)
-           (set! c.3 3)
-           (set! d.4 4)
-           (set! e.5 5)
-           (set! f.6 6)
-           (set! a.1 
-             (if (> (+ a.1 d.4) f.6)
-               (* a.1 (+ c.3 f.6))
-               (* a.1 (+ b.2 e.5))
-               ))
-           a.1)))
-    (letrec ([dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
-                      (locals ()
-                        (+ (* a.1 b.5) 
-                           (+ (* a.2 b.6) 
-                              (+ (* a.3 b.7) (* a.4 b.8))))))])
-      (locals () (dot$0 2 4 6 8 1 3 5 7)))
-    (letrec ([dot-double-first$1 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
-                                   (locals ()
-                                     (dot$0 (+ a.1 a.1) (+ a.2 a.2)
-                                            (+ a.3 a.3) (+ a.4 a.4)
-                                            b.5 b.6 b.7 b.8)))]
-             [dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
-                      (locals ()
-                        (+ (* a.1 b.5) 
-                           (+ (* a.2 b.6) 
-                              (+ (* a.3 b.7) (* a.4 b.8))))))])
-      (locals () (dot-double-first$1 2 4 6 8 1 3 5 7)))
-    (letrec ([dot-double-first$1 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
-                                   (locals ()
-                                     (begin
-                                       (set! a.1 (+ a.1 a.1))
-                                       (set! a.2 (+ a.2 a.2))
-                                       (set! a.3 (+ a.3 a.3))
-                                       (set! a.4 (+ a.4 a.4))
-                                       (dot$0 a.1 a.2 a.3 a.4
-                                              b.5 b.6 b.7 b.8))))]
-             [dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
-                      (locals ()
-                        (+ (* a.1 b.5) 
-                           (+ (* a.2 b.6) 
-                              (+ (* a.3 b.7) (* a.4 b.8))))))])
-      (locals () (dot-double-first$1 2 4 6 8 1 3 5 7)))
-     
-    ;; stress the register allocator, but not so much that it needs to spill.
-    (letrec ()
-      (locals (a.1 b.2 c.3 d.4 e.5 f.6 g.7 h.8 i.9 j.10 k.11 l.12 m.13 n.14 
-               o.15 p.16 q.17 r.18 s.19 t.20 u.21 v.22 w.23 x.24 y.25 z.26)
-        (begin
-          (set! a.1 1)
-          (set! b.2 2)
-          (set! c.3 3)
-          (set! d.4 4)
-          (set! e.5 5)
-          (set! f.6 6)
-          (set! g.7 7)
-          (set! h.8 8)
-          (set! i.9 9)
-          (set! j.10 10)
-          (set! k.11 11)
-          (set! l.12 12)
-          (set! m.13 13)
-          (set! a.1 (+ (- (+ a.1 b.2) (+ (- c.3 d.4) e.5)) f.6))
-          (set! a.1 (+ (- a.1 g.7) (+ h.8 (- i.9 (+ j.10 k.11)))))
-          (set! a.1 (+ a.1 (+ l.12 m.13)))
-          (set! n.14 14)
-          (set! o.15 15)
-          (set! p.16 16)
-          (set! q.17 17)
-          (set! r.18 18)
-          (set! s.19 19)
-          (set! t.20 20)
-          (set! u.21 21)
-          (set! v.22 22)
-          (set! w.23 23)
-          (set! x.24 24)
-          (set! y.25 25)
-          (set! a.1 (+ (+ (+ (+ (+ (+ (+ (+ (+ (+ (+ (+ a.1 n.14) o.15) p.16)
-                       q.17) r.18) s.19) t.20) u.21) v.22) w.23) x.24) y.25))
-          (set! z.26 26)
-          (set! b.2 27)
-          (set! c.3 28)
-          (set! d.4 29)
-          (set! e.5 30)
-          (set! f.6 31)
-          (set! g.7 32)
-          (set! h.8 33)
-          (set! i.9 34)
-          (set! j.10 35)
-          (set! k.11 36)
-          (set! l.12 37)
-          (+ a.1 (+ z.26 (+ b.2 (+ c.3 (+ d.4 (+ e.5 (+  f.6 (+ g.7 (+ h.8
-             (+ i.9 (+ j.10 (+ k.11 l.12)))))))))))))))
-
-    ;; another stress test, which should fail unless low-degree
-    ;; nodes are chosen properly
-     (letrec ()
-       (locals (b.2 g.7 c.3 d.4 e.5 a.1 f.6)
-         (begin
-           (set! a.1 1)
-           (set! b.2 2)
-           (set! c.3 a.1)
-           (set! d.4 4)
-           (set! e.5 5)
-           (set! f.6 b.2)
-           (set! f.6 (+ f.6 c.3))
-           (set! f.6 (+ f.6 d.4))
-           (set! f.6 (+ f.6 e.5))
-           (set! g.7 7)
-           (+ f.6 g.7))))
- 
-   ;; another variant of latter 
-    (letrec ()
-      (locals (b.2 g.7 c.3 d.4 e.5 a.1 f.6 h.8 i.9 j.10 k.11)
-        (begin
-          (set! h.8 77)
-          (set! i.9 88)
-          (set! j.10 99)
-          (set! k.11 111)
-          (set! a.1 1)
-          (set! b.2 2)
-          (set! c.3 a.1)
-          (set! d.4 4)
-          (set! e.5 5)
-          (set! f.6 b.2)
-          (set! f.6 (+ f.6 c.3))
-          (set! f.6 (+ f.6 d.4))
-          (set! f.6 (+ f.6 e.5))
-          (set! g.7 7)
-          (set! f.6 (+ f.6 g.7))
-          (set! f.6 (+ f.6 i.9))
-          (set! f.6 (+ f.6 j.10))
-          (set! f.6 (+ f.6 k.11))
-          (+ f.6 h.8)))) 
-
-    ;; The following makes a.1 of high degree and since no variable
-    ;; can be spilled causes an error in the register allocator
-    (letrec ()
-      (locals (a.1 b.2 c.3 d.4 e.5 f.6 g.7 h.8 i.9 j.10 k.11 l.12 m.13 n.14 
-               o.15 p.16 q.17 r.18 s.19 t.20 u.21 v.22 w.23 x.24 y.25 z.26)
-        (begin
-          (set! a.1 1)
-          (set! b.2 2)
-          (set! c.3 3)
-          (set! d.4 4)
-          (set! e.5 5)
-          (set! f.6 6)
-          (set! g.7 7)
-          (set! h.8 8)
-          (set! i.9 9)
-          (set! j.10 10)
-          (set! k.11 11)
-          (set! l.12 12)
-          (set! m.13 13)
-          (set! n.14 14)
-          (set! o.15 15)
-          (set! p.16 16)
-          (set! q.17 17)
-          (set! r.18 18)
-          (set! s.19 19)
-          (set! t.20 20)
-          (set! u.21 21)
-          (set! v.22 22)
-          (set! w.23 23)
-          (set! x.24 24)
-          (set! y.25 25)
-          (set! z.26 26)
-          (set! a.1 (+ a.1 (+ b.2 (+ c.3 (+ d.4 (+ e.5 (+ f.6 (+ g.7 (+ h.8
-                    (+ i.9 (+ j.10 (+ k.11 (+ l.12 (+ m.13 (+ n.14 (+ o.15 
-                    (+ p.16 (+ q.17 (+ r.18 (+ s.19 (+ t.20 (+ u.21 (+ v.22 
-                    (+ w.23 (+ x.24 (+ y.25 z.26))))))))))))))))))))))))))
-          (set! b.2 27)
-          (set! c.3 28)
-          (set! d.4 29)
-          (set! e.5 30)
-          (set! f.6 31)
-          (set! g.7 32)
-          (set! h.8 33)
-          (set! i.9 34)
-          (set! j.10 35)
-          (set! k.11 36)
-          (set! l.12 37)
-          (set! m.13 38)
-          (set! n.14 39)
-          (set! o.15 40)
-          (set! a.1 (+ a.1 (+ b.2 (+ c.3 (+ d.4 (+ e.5 (+ f.6 (+ g.7 (+ h.8
-                    (+ i.9 (+ j.10 (+ k.11 (+ l.12 (+ m.13 
-                    (+ n.14 o.15)))))))))))))))
-          a.1)))
-    )
+           (set! b.3 3)
+           (set! n.1
+             (prim + n.1 (if (prim = (prim + n.1 b.3) b.3) 5 10)))
+           (set! n.1 (prim + n.1 b.3)))
+         (set! n.1 (prim + n.1 a.2)))
+       (prim + n.1 n.1))))
+ (letrec ()
+   (locals
+     (a.1 b.2 c.3 d.4 e.5)
+     (begin
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 3)
+       (set! d.4 4)
+       (set! e.5 5)
+       (prim + (prim + (prim + (prim + e.5 d.4) c.3) b.2) a.1))))
+ (letrec ()
+   (locals
+     (a.1 b.2 c.3 d.4 e.5 f.6)
+     (begin
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 3)
+       (set! d.4 4)
+       (set! e.5 5)
+       (set! f.6 6)
+       (set! a.1
+         (if (prim > (prim + a.1 d.4) f.6)
+             (prim * a.1 (prim + c.3 f.6))
+             (prim * a.1 (prim + b.2 e.5))))
+       a.1)))
+ (letrec ([dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
+                   (locals
+                     ()
+                     (prim
+                       +
+                       (prim * a.1 b.5)
+                       (prim
+                         +
+                         (prim * a.2 b.6)
+                         (prim + (prim * a.3 b.7) (prim * a.4 b.8))))))])
+   (locals () (call dot$0 2 4 6 8 1 3 5 7)))
+ (letrec ([dot-double-first$1 (lambda (a.1 a.2 a.3 a.4 b.5
+                                       b.6 b.7 b.8)
+                                (locals
+                                  ()
+                                  (call dot$0 (prim + a.1 a.1) (prim + a.2 a.2)
+                                    (prim + a.3 a.3) (prim + a.4 a.4) b.5
+                                    b.6 b.7 b.8)))]
+          [dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
+                   (locals
+                     ()
+                     (prim
+                       +
+                       (prim * a.1 b.5)
+                       (prim
+                         +
+                         (prim * a.2 b.6)
+                         (prim + (prim * a.3 b.7) (prim * a.4 b.8))))))])
+   (locals () (call dot-double-first$1 2 4 6 8 1 3 5 7)))
+ (letrec ([dot-double-first$1 (lambda (a.1 a.2 a.3 a.4 b.5
+                                       b.6 b.7 b.8)
+                                (locals
+                                  ()
+                                  (begin
+                                    (set! a.1 (prim + a.1 a.1))
+                                    (set! a.2 (prim + a.2 a.2))
+                                    (set! a.3 (prim + a.3 a.3))
+                                    (set! a.4 (prim + a.4 a.4))
+                                    (call dot$0 a.1 a.2 a.3 a.4 b.5 b.6 b.7
+                                      b.8))))]
+          [dot$0 (lambda (a.1 a.2 a.3 a.4 b.5 b.6 b.7 b.8)
+                   (locals
+                     ()
+                     (prim
+                       +
+                       (prim * a.1 b.5)
+                       (prim
+                         +
+                         (prim * a.2 b.6)
+                         (prim + (prim * a.3 b.7) (prim * a.4 b.8))))))])
+   (locals () (call dot-double-first$1 2 4 6 8 1 3 5 7)))
+ (letrec ()
+   (locals
+     (a.1 b.2 c.3 d.4 e.5 f.6 g.7 h.8 i.9 j.10 k.11 l.12 m.13
+      n.14 o.15 p.16 q.17 r.18 s.19 t.20 u.21 v.22 w.23 x.24 y.25
+      z.26)
+     (begin
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 3)
+       (set! d.4 4)
+       (set! e.5 5)
+       (set! f.6 6)
+       (set! g.7 7)
+       (set! h.8 8)
+       (set! i.9 9)
+       (set! j.10 10)
+       (set! k.11 11)
+       (set! l.12 12)
+       (set! m.13 13)
+       (set! a.1
+         (prim
+           +
+           (prim - (prim + a.1 b.2) (prim + (prim - c.3 d.4) e.5))
+           f.6))
+       (set! a.1
+         (prim
+           +
+           (prim - a.1 g.7)
+           (prim + h.8 (prim - i.9 (prim + j.10 k.11)))))
+       (set! a.1 (prim + a.1 (prim + l.12 m.13)))
+       (set! n.14 14)
+       (set! o.15 15)
+       (set! p.16 16)
+       (set! q.17 17)
+       (set! r.18 18)
+       (set! s.19 19)
+       (set! t.20 20)
+       (set! u.21 21)
+       (set! v.22 22)
+       (set! w.23 23)
+       (set! x.24 24)
+       (set! y.25 25)
+       (set! a.1
+         (prim
+           +
+           (prim
+             +
+             (prim
+               +
+               (prim
+                 +
+                 (prim
+                   +
+                   (prim
+                     +
+                     (prim
+                       +
+                       (prim
+                         +
+                         (prim
+                           +
+                           (prim + (prim + (prim + a.1 n.14) o.15) p.16)
+                           q.17)
+                         r.18)
+                       s.19)
+                     t.20)
+                   u.21)
+                 v.22)
+               w.23)
+             x.24)
+           y.25))
+       (set! z.26 26)
+       (set! b.2 27)
+       (set! c.3 28)
+       (set! d.4 29)
+       (set! e.5 30)
+       (set! f.6 31)
+       (set! g.7 32)
+       (set! h.8 33)
+       (set! i.9 34)
+       (set! j.10 35)
+       (set! k.11 36)
+       (set! l.12 37)
+       (prim
+         +
+         a.1
+         (prim
+           +
+           z.26
+           (prim
+             +
+             b.2
+             (prim
+               +
+               c.3
+               (prim
+                 +
+                 d.4
+                 (prim
+                   +
+                   e.5
+                   (prim
+                     +
+                     f.6
+                     (prim
+                       +
+                       g.7
+                       (prim
+                         +
+                         h.8
+                         (prim
+                           +
+                           i.9
+                           (prim + j.10 (prim + k.11 l.12)))))))))))))))
+ (letrec ()
+   (locals
+     (b.2 g.7 c.3 d.4 e.5 a.1 f.6)
+     (begin
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 a.1)
+       (set! d.4 4)
+       (set! e.5 5)
+       (set! f.6 b.2)
+       (set! f.6 (prim + f.6 c.3))
+       (set! f.6 (prim + f.6 d.4))
+       (set! f.6 (prim + f.6 e.5))
+       (set! g.7 7)
+       (prim + f.6 g.7))))
+ (letrec ()
+   (locals
+     (b.2 g.7 c.3 d.4 e.5 a.1 f.6 h.8 i.9 j.10 k.11)
+     (begin
+       (set! h.8 77)
+       (set! i.9 88)
+       (set! j.10 99)
+       (set! k.11 111)
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 a.1)
+       (set! d.4 4)
+       (set! e.5 5)
+       (set! f.6 b.2)
+       (set! f.6 (prim + f.6 c.3))
+       (set! f.6 (prim + f.6 d.4))
+       (set! f.6 (prim + f.6 e.5))
+       (set! g.7 7)
+       (set! f.6 (prim + f.6 g.7))
+       (set! f.6 (prim + f.6 i.9))
+       (set! f.6 (prim + f.6 j.10))
+       (set! f.6 (prim + f.6 k.11))
+       (prim + f.6 h.8))))
+ (letrec ()
+   (locals
+     (a.1 b.2 c.3 d.4 e.5 f.6 g.7 h.8 i.9 j.10 k.11 l.12 m.13
+      n.14 o.15 p.16 q.17 r.18 s.19 t.20 u.21 v.22 w.23 x.24 y.25
+      z.26)
+     (begin
+       (set! a.1 1)
+       (set! b.2 2)
+       (set! c.3 3)
+       (set! d.4 4)
+       (set! e.5 5)
+       (set! f.6 6)
+       (set! g.7 7)
+       (set! h.8 8)
+       (set! i.9 9)
+       (set! j.10 10)
+       (set! k.11 11)
+       (set! l.12 12)
+       (set! m.13 13)
+       (set! n.14 14)
+       (set! o.15 15)
+       (set! p.16 16)
+       (set! q.17 17)
+       (set! r.18 18)
+       (set! s.19 19)
+       (set! t.20 20)
+       (set! u.21 21)
+       (set! v.22 22)
+       (set! w.23 23)
+       (set! x.24 24)
+       (set! y.25 25)
+       (set! z.26 26)
+       (set! a.1
+         (prim
+           +
+           a.1
+           (prim
+             +
+             b.2
+             (prim
+               +
+               c.3
+               (prim
+                 +
+                 d.4
+                 (prim
+                   +
+                   e.5
+                   (prim
+                     +
+                     f.6
+                     (prim
+                       +
+                       g.7
+                       (prim
+                         +
+                         h.8
+                         (prim
+                           +
+                           i.9
+                           (prim
+                             +
+                             j.10
+                             (prim
+                               +
+                               k.11
+                               (prim
+                                 +
+                                 l.12
+                                 (prim
+                                   +
+                                   m.13
+                                   (prim
+                                     +
+                                     n.14
+                                     (prim
+                                       +
+                                       o.15
+                                       (prim
+                                         +
+                                         p.16
+                                         (prim
+                                           +
+                                           q.17
+                                           (prim
+                                             +
+                                             r.18
+                                             (prim
+                                               +
+                                               s.19
+                                               (prim
+                                                 +
+                                                 t.20
+                                                 (prim
+                                                   +
+                                                   u.21
+                                                   (prim
+                                                     +
+                                                     v.22
+                                                     (prim
+                                                       +
+                                                       w.23
+                                                       (prim
+                                                         +
+                                                         x.24
+                                                         (prim
+                                                           +
+                                                           y.25
+                                                           z.26))))))))))))))))))))))))))
+       (set! b.2 27)
+       (set! c.3 28)
+       (set! d.4 29)
+       (set! e.5 30)
+       (set! f.6 31)
+       (set! g.7 32)
+       (set! h.8 33)
+       (set! i.9 34)
+       (set! j.10 35)
+       (set! k.11 36)
+       (set! l.12 37)
+       (set! m.13 38)
+       (set! n.14 39)
+       (set! o.15 40)
+       (set! a.1
+         (prim
+           +
+           a.1
+           (prim
+             +
+             b.2
+             (prim
+               +
+               c.3
+               (prim
+                 +
+                 d.4
+                 (prim
+                   +
+                   e.5
+                   (prim
+                     +
+                     f.6
+                     (prim
+                       +
+                       g.7
+                       (prim
+                         +
+                         h.8
+                         (prim
+                           +
+                           i.9
+                           (prim
+                             +
+                             j.10
+                             (prim
+                               +
+                               k.11
+                               (prim
+                                 +
+                                 l.12
+                                 (prim
+                                   +
+                                   m.13
+                                   (prim + n.14 o.15)))))))))))))))
+       a.1))))
