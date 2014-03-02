@@ -323,7 +323,7 @@
 
  ; calling conventions
   #;(define caller-saved-registers registers) ; all registers are caller-saved
-  (define-mutable parameter-registers '(r8 r9))
+  (define-mutable parameter-registers '())
   (define-mutable frame-pointer-register 'rbp)
   (define-mutable return-value-register 'rax)
   (define-mutable return-address-register 'r15)

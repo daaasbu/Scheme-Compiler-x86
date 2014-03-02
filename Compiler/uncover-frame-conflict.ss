@@ -22,6 +22,7 @@
 
              (define update-table
                (lambda (var cf* cf-ls)
+	
                  (let* ([found (assq var cf-ls)]
                         [rest (cdr found)]
                         [conflicts (union cf* rest)])
@@ -64,6 +65,31 @@
                (lambda (ef*)
                  (reverse (map* Effect (reverse ef*)))))
 
+
+	     (define nfv?
+	       (lambda (nfv)
+		 (if (uvar? nfv)
+		     (equal? "NFV" (extract-root nfv))
+		     #f)))
+
+	     (define rp?
+	       (lambda (rp)
+		 (if (uvar? rp)
+		     (equal? "RP" (extract-root rp))
+		     #f)))
+
+
+;;ADDED THIS FUNCTION TO APPLY TO CFGRAPH TO MATCH ONLINE COMPILER, unsure of why RP's don't conflict with NFV's
+	     (define table-scrub
+	       (lambda (cfgraph)
+		 (map (lambda (x) (cond 
+				   [(nfv? (car x)) (filter (lambda (y) (not (rp? y))) x)]
+				   [(rp? (car x)) (filter (lambda (y) (not (nfv? y))) x)]
+				   [else x]))
+		      cfgraph)))
+		 
+
+
 	     (define call-live* '())
 	     
              )
@@ -78,16 +104,17 @@
            (Body : Body (x) -> Body ()
                  [(locals (,uv0* ...) (new-frames ((,uv1* ...) ...) ,tl)) 
 		  (begin
-		    (set! conflict-table (init-conflict-table uv0*))
+		    (set! conflict-table (init-conflict-table (append (apply append uv1*) uv0*)))
+		    (set! live-ls '())
 		    (let ([tl (Tail tl)])
-		      `(locals (,uv0* ...)(new-frames ((,uv1* ...) ...) 
+		      `(locals (,(difference uv0* (filter uvar? call-live*)) ...)(new-frames ((,uv1* ...) ...) 
 						      (spills (,(filter uvar? call-live*) ...)  
-							      (frame-conflict ,conflict-table (call-live (,call-live* ...) ,tl)))))))]
+							      (frame-conflict ,(table-scrub conflict-table) (call-live (,call-live* ...) ,tl)))))))]
                  [else (error who "something went wrong - Body")])
            (Tail : Tail (x) -> Tail ()
                  [(,triv ,locrf* ...) (begin
                                         
-                                        (set! live-ls (remove-reg (set-cons triv locrf*)))
+                                        (set! live-ls (union (remove-reg (set-cons triv locrf*)) live-ls))
                                         
                                         (in-context Tail `(,triv ,locrf* ...)))]
                  [(begin ,ef* ... ,tl) (begin
@@ -133,6 +160,8 @@
 				       ((and (uvar? v) (or (frame-var? triv) (uvar? triv)))
 					(set! conflict-table (update-table v (remove triv live-ls) conflict-table)))
                                         ((uvar? v)
+;					 (display "v: ") (display v) (newline) (display "triv: ") (display triv) (newline)
+;					 (display "live-ls: ") (display live-ls) (newline)
                                          (set! conflict-table (update-table v live-ls conflict-table)))
                                        ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
 ;				      

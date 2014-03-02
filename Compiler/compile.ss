@@ -14,8 +14,8 @@
 	  (Compiler flatten-set!)
 	  (Compiler impose-calling-conventions)
 	  (Compiler uncover-frame-conflict)
-;	  (Compiler pre-assign-frame)
-;	  (Compiler assign-new-frame)
+	  (Compiler pre-assign-frame)
+	  (Compiler assign-new-frame)
 ;	  (Compiler introduce-allocation-forms)
 ;	  (Compiler select-instructions)
 ;	  (Compiler uncover-register-conflict)
@@ -49,9 +49,9 @@
 	   (flatten-set!)
 	   (impose-calling-conventions)
 	   (uncover-frame-conflict)
-;	   (introduce-allocation-forms)
-;	   (pre-assign-frame)
-;	   (assign-new-frame)
+	  
+	   (pre-assign-frame)
+	   (assign-new-frame)
 ;	   (iterate
 ;	    (finalize-frame-locations)
 ;	    (select-instructions)
