@@ -1,5 +1,5 @@
 (library (Compiler assign-frame)
-         (export assign-frame parse-LassignFrame)
+         (export assign-frame)
          (import
           (chezscheme)
           (source-grammar)
@@ -23,9 +23,9 @@
 	 (let ([total (conflict-total var c-table)])
 	 (< total k))))
 	 |#
-         (define-parser parse-LassignFrame LassignFrame)
+      ;   (define-parser parse-LassignFrame LassignFrame)
 
-         (define-pass assign-frame : LassignRegisters (x) -> LassignFrame ()
+         (define-pass assign-frame : LassignRegisters (x) -> LassignNewFrame ()
            (definitions
              (define k (length registers))
 

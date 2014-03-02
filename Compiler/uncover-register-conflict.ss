@@ -9,7 +9,7 @@
 
          (define-parser parse-LuncoverRegisterConflict LuncoverRegisterConflict)
 
-         (define-pass uncover-register-conflict : LintroduceAllocationForms (x) -> LuncoverRegisterConflict ()
+         (define-pass uncover-register-conflict : LassignNewFrame (x) -> LuncoverRegisterConflict ()
            (definitions
 
              (define init-conflict-table
@@ -179,6 +179,7 @@
                                            (let* ([a (Effect ef)]
                                                   [b (Ef* ef*)])
 					     `(begin ,b ... ,a)))]
+		   [(return-point ,l ,[tl]) `(return-point ,l ,tl)] 
                    [else (error who "something went wrong - Effect")])
            (Triv : Triv (x) -> Triv ()
                  [,v (if (or (register? v) (uvar? v)) (set! live-ls (set-cons v live-ls)))

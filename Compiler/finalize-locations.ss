@@ -78,7 +78,7 @@
                    [(if ,pred ,ef1 ,ef2) `(if ,(Pred pred env) ,(Effect ef1 env) ,(Effect ef2 env))]
                    [(begin ,ef* ... ,ef1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Effect ef1 env))]
                    [(nop) `(nop)]
-                   [else (error who "something went wrong effect" x env)])
+                  )
            (Triv : Triv (x env) -> Triv ()
                  [,v `,(Var v env)]
                  [,i `,i]
