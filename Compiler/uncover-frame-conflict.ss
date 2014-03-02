@@ -163,7 +163,8 @@
 ;					 (display "v: ") (display v) (newline) (display "triv: ") (display triv) (newline)
 ;					 (display "live-ls: ") (display live-ls) (newline)
                                          (set! conflict-table (update-table v live-ls conflict-table)))
-                                       ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
+					((and (frame-var? v) (or (frame-var? triv) (uvar? triv))) (set! conflict-table (update-table-reg v (remove triv live-ls) conflict-table)))
+					((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
 ;				      
 			
                                       (let* ([a (Triv triv)])
@@ -173,6 +174,7 @@
                                                     (set! live-ls (remv v live-ls))
 ;						    
                                                     (cond
+						     
                                                      ((uvar? v) (set! conflict-table (update-table v live-ls conflict-table)))
                                                      ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
 ;                                                   

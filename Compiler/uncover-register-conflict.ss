@@ -154,6 +154,7 @@
 				       ((uvar? v)
 					(set! conflict-table (update-table v live-ls conflict-table))
 					)
+				       ((and (register? v) (or (register? triv) (uvar? triv))) (set! conflict-table (update-table-reg v (remove triv live-ls) conflict-table))) 
                                        ((register? v) (set! conflict-table (update-table-reg v live-ls conflict-table)))
                                        )
                                       (let* ([a (Triv triv)])
