@@ -195,12 +195,13 @@
 		 [(locals (,uv1* ...) 
 			  (ulocals (,uv2* ...) 
 				   (locate ([,uv3* ,locrf*] ...)
-					   (frame-conflict ,cfgraph ,[tl]))))
-		 ; (display "UNSP*: ") (newline) (display UNSP*) (newline)
+					   (frame-conflict ,cfgraph ,tl))))
+		  (begin (set! UNSP* '())
+			 (let ((tl (Tail tl)))
 		  `(locals (,uv1* ...)
 			   (ulocals (,(append UNSP* uv2*) ...)
 				    (locate ([,uv3* ,locrf*] ...)
-					    (frame-conflict ,cfgraph ,tl))))]
+					    (frame-conflict ,cfgraph ,tl))))))]
 
 		 [(locate ((,uv** ,locrf*) ...) ,[tl]) `(locate ((,uv** ,locrf*) ...) ,tl)])
 	   

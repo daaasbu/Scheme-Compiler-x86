@@ -23,10 +23,48 @@
 ;;; Note: we use shift left by word-shift (3 for 64-bit target
 ;;; machine) to calculate the multiplication.
 
-(define-pass expose-frame-var : LfinalizeLocations (x) -> LexposeFrameVar ()
-  (Loc : Loc (locrf) -> Loc ()
-    [,fv
-     (make-disp-opnd frame-pointer-register
-         (ash (frame-var->index fv) word-shift))]
-    [,r r]))
+  (define-pass expose-frame-var : LfinalizeLocations (x) -> LexposeFrameVar ()
+    (definitions
+      (define fp?
+	(lambda (r)
+	  (equal? r frame-pointer-register)))
+
+
+;;BEWARE POSSIBLE ERROR
+      (define flip-sign
+	(lambda (op)
+	  (case op
+	    (+ -)
+	    (- +))))
+
+
+      (define offset 0)
+
+      (define map^
+	(lambda (proc ls)
+	  (cond
+	   ((null? ls) ls)
+	   (else (let ((cell (proc (car ls)))) (cons cell (map^ proc (cdr ls))))))))
 )
+    (Tail : Tail (x) -> Tail ()
+	  [(begin ,ef* ... ,tl) (let* ((ef* (map^ (lambda (x) (Effect x)) ef*)) (tl (Tail tl))) `(begin ,ef* ... ,tl))])
+    
+    (Pred : Pred (x) -> Pred ()
+	  [(begin ,ef* ... ,pred) (let* ((ef* (map^ (lambda (x) (Effect x)) ef*)) (pred (Pred pred))) `(begin ,ef* ... ,pred))])
+
+
+    (Effect : Effect (x) -> Effect ()
+	    [(begin ,ef* ... ,ef) (let* ((ef* (map^ (lambda (x) (Effect x)) ef*)) (ef (Effect ef))) `(begin ,ef* ... ,ef))]
+	    [(return-point ,l ,[tl offset -> tl]) `(return-point ,l ,tl)]
+	    [(set! ,r (,op ,triv0 ,triv1)) (if (and (equal? r triv0) (fp? r) (integer? triv1)) (begin  (set! offset ((flip-sign op) offset triv1))  `(set! ,r (,op ,triv0 ,triv1))) `(set! ,r (,op ,(Triv triv0) ,(Triv triv1))))]) 
+
+    
+
+    (Triv : Triv (x) -> Triv ())
+
+    (Loc : Loc (locrf) -> Loc ()
+	 [,fv
+	   (make-disp-opnd frame-pointer-register
+					   (+ offset (ash (frame-var->index fv) word-shift)))]
+	 [,r r]))
+  )
