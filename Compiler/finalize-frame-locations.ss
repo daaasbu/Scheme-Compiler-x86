@@ -11,6 +11,13 @@
           (Framework nanopass)
           (Framework helpers))
 
+	 
+         ;(define-parser parse-LfinalizeFrameLocations LfinalizeFrameLocations)
+
+         (define-pass finalize-frame-locations : LassignNewFrame (x) -> LassignNewFrame ()
+	   
+	   (definitions 
+
          (define walk-symbol
            (lambda (x s)
              (letrec ((walk
@@ -23,21 +30,22 @@
                                           (walk y (cdr t))))]))))
                (walk x s))))
 
-         ;(define-parser parse-LfinalizeFrameLocations LfinalizeFrameLocations)
+	 
+	     (define nfv?
+	       (lambda (nfv)
+		 (if (uvar? nfv)
+		     (equal? "NFV" (extract-root nfv))
+		     #f)))
 
-         (define-pass finalize-frame-locations : LassignFrame (x) -> LintroduceAllocationForms ()
+	     (define rp?
+	       (lambda (rp)
+		 (if (uvar? rp)
+		     (equal? "RP" (extract-root rp))
+		     #f)))
 
-#|
-           (Prog : Prog (x) -> Prog ()
-                 [(letrec ([,l* ,le*] ...) ,bd) `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x)) le*)] ...) ,(Body bd '()))])
-           (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
-                       [(lambda () ,bd) `(lambda () ,(Body bd '()))])
-           (Body : Body (x env) -> Tail ()
-                 [(locate ([,uv* ,r*] ...) ,tl) (Tail tl (append (map cons uv* r*) env))]
+	 )
 
-		 
-                 [else (error who "something went wrong body" x env)])
-|#
+	   
 	   (Body : Body (x) -> Body ()
 		 [(locals (,uv1* ...) 
 			  (ulocals (,uv2* ...)
@@ -56,7 +64,7 @@
 
            (Tail : Tail (x env) -> Tail ()
                  [(begin ,ef* ... ,tl1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Tail tl1 env))]
-                  [(,triv ,locrf* ...) `(,(Triv triv env) ,locrf* ...)]
+                  [(,triv ,locrf* ...) `(,(Triv triv env) ,(map (lambda (x) (if (nfv? x) (walk-symbol x env) x)) locrf*) ...)]
 		 
                  [(if ,pred ,tl1 ,tl2) `(if ,(Pred pred env) ,(Tail tl1 env) ,(Tail tl2 env))]
                  [else (error who "something went wrong tail" x env)])
@@ -73,6 +81,7 @@
                                         `(set! ,(Var v env) ,(Triv triv env)))];changed here and 2 lines above
                    [(set! ,v (,op ,triv1 ,triv2)) `(set! ,(Var v env) (,op ,(Triv triv1 env) ,(Triv triv2 env)))]
                    [(if ,pred ,ef1 ,ef2) `(if ,(Pred pred env) ,(Effect ef1 env) ,(Effect ef2 env))]
+		   [(return-point ,l ,tl) `(return-point ,l ,(Tail tl env))]
                    [(begin ,ef* ... ,ef1) `(begin ,(map (lambda (x) (Effect x env)) ef*) ... ,(Effect ef1 env))]
                    [(nop) `(nop)]
                    [else (error who "something went wrong effect" x env)])

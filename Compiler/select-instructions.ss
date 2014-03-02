@@ -1,16 +1,16 @@
 ;;verify-scheme, takes our subset of scheme consisting of mainly letrecs, effects,registers,frame-vars, labels and lambda expressions, and goes through a series of tests that targets a certain machine.These tests could change depending on the target of our compiler.  Goes from LverifyScheme to LverifyScheme.
 ;;
 (library (Compiler select-instructions)
-         (export select-instructions #;parse-LintroduceAllocationForms)
+         (export select-instructions #;parse-LassignNewFrame)
          (import
           (chezscheme)
           (source-grammar)
           (Framework nanopass)
           (Framework helpers))
 
-	 ;(define-parser parse-LintroduceAllocationForms LintroduceAllocationForms)
+	 ;(define-parser parse-LassignNewFrame LassignNewFrame)
 	 
-         (define-pass select-instructions : LintroduceAllocationForms (x) -> LintroduceAllocationForms ()
+         (define-pass select-instructions : LassignNewFrame (x) -> LassignNewFrame ()
 
 
 	   (definitions
@@ -58,17 +58,17 @@
 		  [else '=])))
 
 	     (define converter
-	       (with-output-language (LintroduceAllocationForms Effect)
+	       (with-output-language (LassignNewFrame Effect)
 				     (lambda (ef)
 				       `,ef)))
 
 	     
 	     ;;Takes a variable, a binop, a unspillable, and a triv, and outputs the form (begin (set! u Triv) (set! Var (binop Var u)))   
 	     (define X1
-	       (with-output-language (LintroduceAllocationForms Effect)
+	       (with-output-language (LassignNewFrame Effect)
 	       (lambda (var binop UNSP triv2)
-		 (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv2)))
-		       (store2 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var (,binop ,var ,UNSP))))
+		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv2)))
+		       (store2 (with-output-language (LassignNewFrame Effect) `(set! ,var (,binop ,var ,UNSP))))
 		       (combine (list store1))) #;maybeheretoo
 	        `(begin ,combine ... ,store2)))))
 
@@ -76,13 +76,13 @@
 
 
 	     (define MOVE
-	       (with-output-language (LintroduceAllocationForms Effect)
+	       (with-output-language (LassignNewFrame Effect)
 	       (lambda (var triv)
 		 (cond
 		  [(and (frame-var? var) (or (frame-var? triv) (int64/label? triv))) 
 		   (let* ([UNSP (new-UNSP)]
-			  [store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv))]
-			  [store2 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP))])
+			  [store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv))]
+			  [store2 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP))])
 		     `(begin ,(list store1) ... ,store2))]
 		  [else `(set! ,var ,triv)]))))
 	     
@@ -92,24 +92,24 @@
 		  [(eqv? var triv1) (BINOP2 var binop triv1 triv2)]
 		  [(and (commutative? binop) (eqv? var triv2)) (BINOP2 var binop triv2 triv1)]
 		  [else (let* ([UNSP (new-UNSP)]
-			      [store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv1))]
-			      [store2 #;(with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2)]
-			      #;possiblechange	      [store3 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP))]
+			      [store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv1))]
+			      [store2 #;(with-output-language (LassignNewFrame Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2)]
+			      #;possiblechange	      [store3 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP))]
 			      [combine (list store1 store2)])
 			  (BINOP1-h combine store3))])))
 	 
 	     (define BINOP1-h
-	        (with-output-language (LintroduceAllocationForms Effect)
+	        (with-output-language (LassignNewFrame Effect)
 				      (lambda (combine store3)
 					`(begin ,combine ... ,store3))))
 
 
 	     (define X2
-	       (with-output-language (LintroduceAllocationForms Effect)
+	       (with-output-language (LassignNewFrame Effect)
 				     (lambda (var binop UNSP triv2)
-				       (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,var)))
-					      (store2 #;(with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2))
-					      (store3 (with-output-language (LintroduceAllocationForms Effect) `(set! ,var ,UNSP)))
+				       (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,var)))
+					      (store2 #;(with-output-language (LassignNewFrame Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2))
+					      (store3 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP)))
 					      (combine (list store1 store2))) #;heretoo
  					 `(begin ,combine ... ,store3)))))
 
@@ -138,37 +138,37 @@
 		   (BINOP2-h var binop triv1 triv2)])))
 
 	     (define BINOP2-h
-	       (with-output-language (LintroduceAllocationForms Effect)
+	       (with-output-language (LassignNewFrame Effect)
 				     (lambda (var binop triv1 triv2)
 				       `(set! ,var (,binop ,triv1 ,triv2)))))
 
 	     (define X4
-	       (with-output-language (LintroduceAllocationForms Pred)
+	       (with-output-language (LassignNewFrame Pred)
 				     (lambda (relop triv1 triv2)
 				       `(,(flip-relop relop) ,triv2 ,triv1))))
 	     
 	     (define X5
-	       (with-output-language (LintroduceAllocationForms Pred)
+	       (with-output-language (LassignNewFrame Pred)
 	       (lambda (UNSP relop triv1 triv2)
-		 (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv1)))
-		       (store2 (with-output-language (LintroduceAllocationForms Pred) `(,relop ,UNSP ,triv2)))
+		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv1)))
+		       (store2 (with-output-language (LassignNewFrame Pred) `(,relop ,UNSP ,triv2)))
 		       (combine (list store1)))
 		 `(begin ,combine ... ,store2))))) #;maybeheretoo
 	     
 	     (define X6
-	       (with-output-language (LintroduceAllocationForms Pred)
+	       (with-output-language (LassignNewFrame Pred)
 	       (lambda (UNSP relop triv1 triv2)
-		 (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP ,triv2)))
-			(store2 (with-output-language (LintroduceAllocationForms Pred) `(,(flip-relop relop) ,UNSP ,triv1))))
+		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv2)))
+			(store2 (with-output-language (LassignNewFrame Pred) `(,(flip-relop relop) ,UNSP ,triv1))))
 		 `(begin ,(list store1) ... ,store2)))))
 
 	     
 	     (define X7
-	       (with-output-language (LintroduceAllocationForms Pred)
+	       (with-output-language (LassignNewFrame Pred)
 	       (lambda (UNSP1 UNSP2 relop triv1 triv2)
-		 (let* ((store1 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP1 ,triv1)))
-			(store2 (with-output-language (LintroduceAllocationForms Effect) `(set! ,UNSP2 ,triv2)))
-			(store3 (with-output-language (LintroduceAllocationForms Pred) `(,relop ,UNSP1 ,UNSP2)))
+		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(store2 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP2 ,triv2)))
+			(store3 (with-output-language (LassignNewFrame Pred) `(,relop ,UNSP1 ,UNSP2)))
 			(combine (list store1 store2)))
 		 `(begin ,combine ... ,store3)))))
 	     
@@ -186,23 +186,9 @@
 		  [else (RELOP1-h relop triv1 triv2)])))
 	    
 	   (define RELOP1-h
-	     (with-output-language (LintroduceAllocationForms Pred)
+	     (with-output-language (LassignNewFrame Pred)
 	       (lambda (relop triv1 triv2)
 		 `(,relop ,triv1 ,triv2)))))
-	     #|
-	     (define X8
-	     (lambda (relop triv1 triv2)
-	     
-
-	     (define RELOP2
-	     (lambda (relop triv1 triv2)
-	     (cond 
-	     [(or (and (frame-var? triv1) (frame-var triv2)) (and (frame-var? triv1) (int64/label? triv2)) (and (uvar/reg? triv1) (int64/label? triv2))) 
-	     (X8 relop triv1 triv2)]
-	     [else `(,relop ,triv1 ,triv2)])))
-
-	     |#		     
-
 	     
 	   
 	   (Body : Body (x) -> Body ()
@@ -237,6 +223,7 @@
 		   [(set! ,v (,op ,triv1 ,triv2))   (BINOP1 v op triv1 triv2) ]
 		   [(if ,[pred] ,[ef1] ,[ef2]) `(if ,pred ,ef1 ,ef2) ]
 		   [(begin ,ef* ... ,[ef1]) `(begin ,(map (lambda (x) (Effect x)) ef*) ... ,ef1)]
+		   [(return-point ,l ,[tl]) `(return-point ,l ,tl)]
 		   [(nop) `(nop)]
 		   [else (error who "blah")]
 		   )
