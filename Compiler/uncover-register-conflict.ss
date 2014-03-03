@@ -98,7 +98,7 @@
 		  (begin
 ;		    (display "uv1*: ") (newline) (display uv1*) (newline)
 		    (set! conflict-table (init-conflict-table (append uv1* uv2*)))
-		   
+		    (set! live-ls '())
 		    (let ([a (Tail tl)])
 		   ;    (display "CT: ") (newline) (display conflict-table) (newline)
 		      `(locals (,uv1* ...)
@@ -112,7 +112,7 @@
            (Tail : Tail (x) -> Tail ()
                  [(,triv ,locrf* ...) (begin
                                         
-                                        (set! live-ls (remove-frame-var (set-cons triv locrf*)))
+                                        (set! live-ls (remove-frame-var (union (set-cons triv locrf*) live-ls)))
                                         
                                         (in-context Tail `(,triv ,locrf* ...)))]
                  [(begin ,ef* ... ,tl) (begin
