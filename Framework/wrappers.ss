@@ -2,6 +2,8 @@
   (export
     env
     alloc
+    prim 
+    call
     handle-overflow
     set!
     rewrite-opnds
@@ -226,16 +228,25 @@
 
 (define (nop) (void))
 
+(define-syntax call 
+  (syntax-rules ()
+    ((_ x x* ...) (x x* ...))))
+
+(define-syntax prim
+  (syntax-rules ()
+    ((_ x x* ...) (x x* ...))))
 )
 
 (library (Framework wrappers)
   (export
+    pass->unparser
     pass->wrapper
     source/wrapper
     verify-uil/wrapper
     remove-complex-opera*/wrapper
     flatten-set!/wrapper
     impose-calling-conventions/wrapper
+    expose-allocation-pointer/wrapper
     uncover-frame-conflict/wrapper
     pre-assign-frame/wrapper
     assign-new-frame/wrapper
@@ -247,33 +258,49 @@
     discard-call-live/wrapper
     finalize-locations/wrapper
     expose-frame-var/wrapper
+    expose-memory-operands/wrapper
     expose-basic-blocks/wrapper
     flatten-program/wrapper
     generate-x86-64/wrapper)
   (import
     (except (chezscheme) set!)
+    ;(Framework match)
+    ;(chezscheme)
+    (source-grammar)
     (Framework match)
-    (Framework GenGrammars l22-verify-uil)
-    (Framework GenGrammars l23-remove-complex-opera)
-    (Framework GenGrammars l24-flatten-set)
-    (Framework GenGrammars l25-impose-calling-conventions)
-    (Framework GenGrammars l27-uncover-frame-conflict)
-    (Framework GenGrammars l28-pre-assign-frame)
-    (Framework GenGrammars l29-assign-new-frame)
-    (Framework GenGrammars l30-finalize-frame-locations)
-    (Framework GenGrammars l32-uncover-register-conflict)
-    (Framework GenGrammars l33-assign-registers)
-    (Framework GenGrammars l35-discard-call-live)
-    (Framework GenGrammars l36-finalize-locations)
-    (Framework GenGrammars l37-expose-frame-var)
-    (Framework GenGrammars l39-expose-basic-blocks)
-    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux) 
       env rewrite-opnds compute-frame-size
       return-point-complex return-point-simple
       new-frames set! alloc))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass
+      ((source) unparse-LverifyScheme)
+      ((verify-uil) unparse-LverifyScheme)
+      ((remove-complex-opera*) unparse-LremoveComplexOpera*)
+      ((flatten-set!) unparse-LflattenSet!)
+      ((impose-calling-conventions) unparse-LimposeCallingConventions)
+      ((expose-allocation-pointer) unparse-LexposeAllocationPointer)
+      ((uncover-frame-conflict) unparse-LuncoverFrameConflict)
+      ((pre-assign-frame) unparse-LpreAssignFrame)
+      ((assign-new-frame) unparse-LassignNewFrame)
+      ((finalize-frame-locations) unparse-LassignNewFrame)
+      ((select-instructions) unparse-LassignNewFrame)
+      ((uncover-register-conflict) unparse-LuncoverRegisterConflict)
+      ((assign-registers) unparse-LassignRegisters)
+      ((assign-frame) unparse-LassignNewFrame)
+      ((discard-call-live) unparse-LdiscardCallLive)
+      ((finalize-locations) unparse-LfinalizeLocations)
+      ((expose-frame-var) unparse-LexposeFrameVar)
+      ((expose-memory-operands) unparse-LexposeMemoryOperands)
+      ((expose-basic-blocks) unparse-LexposeBasicBlocks)
+      ((flatten-program) unparse-LflattenProgram)
+      ((generate-x86-64) (lambda (x) x))
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -284,6 +311,7 @@
       ((remove-complex-opera*) remove-complex-opera*/wrapper)
       ((flatten-set!) flatten-set!/wrapper)
       ((impose-calling-conventions) impose-calling-conventions/wrapper)
+      ((expose-allocation-pointer) expose-allocation-pointer/wrapper)
       ((uncover-frame-conflict) uncover-frame-conflict/wrapper)
       ((pre-assign-frame) pre-assign-frame/wrapper)
       ((assign-new-frame) assign-new-frame/wrapper)
@@ -295,6 +323,7 @@
       ((discard-call-live) discard-call-live/wrapper)
       ((finalize-locations) finalize-locations/wrapper)
       ((expose-frame-var) expose-frame-var/wrapper)
+      ((expose-memory-operands) expose-memory-operands/wrapper)
       ((expose-basic-blocks) expose-basic-blocks/wrapper)
       ((flatten-program) flatten-program/wrapper)
       ((generate-x86-64) generate-x86-64/wrapper)
@@ -312,7 +341,7 @@
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
+      handle-overflow locals true false nop call prim)
     (only (chezscheme) letrec))
   (reset-machine-state!)
   ,x ;,(if (grammar-verification) (verify-grammar:l01-verify-scheme x) x)
@@ -329,7 +358,7 @@
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
+      handle-overflow locals true false nop call prim)
     (only (chezscheme) letrec))
   (reset-machine-state!)
   ,x ;,(if (grammar-verification) (verify-grammar:l23-remove-complex-opera x) x)
@@ -346,7 +375,7 @@
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop)
+      handle-overflow locals true false nop call prim)
     (only (chezscheme) letrec))
   (reset-machine-state!)
   ,x ; ,(if (grammar-verification) (verify-grammar:l24-flatten-set x) x)
@@ -364,9 +393,26 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals true false nop))
+      handle-overflow letrec locals true false nop call prim))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
+       ,x))
+  ,return-value-register)
+
+;;-----------------------------------
+;; expose-allocation-pointer/wrapper
+;;-----------------------------------
+(define-language-wrapper expose-allocation-pointer/wrapper
+  (x)
+  (environment env)
+  (define frame-size ,(compute-frame-size x))
+  ,return-point-complex
+  ,new-frames
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow letrec locals true false nop))
+  (call/cc (lambda (k) (set! ,return-address-register k) ;,x))
+             ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -384,7 +430,7 @@
       handle-overflow letrec locals spills call-live
       frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-    ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)
+    ,x
     ))
   ,return-value-register)
 
@@ -402,8 +448,7 @@
       handle-overflow letrec locals locate call-live
       frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-       ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x) 
-       ))
+       ,x))
   ,return-value-register)
 
 
@@ -425,8 +470,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)
-      ))
+      ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -445,7 +489,7 @@
       locals ulocals frame-conflict
       true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+       ,x))
   ,return-value-register)
 
 #;
@@ -467,7 +511,7 @@
       locals ulocals frame-conflict
       true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k)
-       ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -482,7 +526,7 @@
       handle-overflow letrec locate locals ulocals
       frame-conflict register-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
+       ,x))
   ,return-value-register)
 
 ;;-----------------------------------
@@ -497,7 +541,7 @@
       handle-overflow letrec locate locals ulocals
       spills frame-conflict true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
+       ,x))
   ,return-value-register)
 
 (define-language-wrapper discard-call-live/wrapper (x)
@@ -508,7 +552,7 @@
              handle-overflow letrec locate
             true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
+       ,x))
   ,return-value-register)
 
 (define-language-wrapper finalize-locations/wrapper
@@ -520,7 +564,7 @@
     (only (Framework wrappers aux)
       handle-overflow letrec true false nop))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
+       ,x))
   ,return-value-register)
 
 
@@ -536,8 +580,25 @@
   (call/cc
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
+
+;; DUPLICATED from previous, except with different grammar verification:
+(define-language-wrapper expose-memory-operands/wrapper
+  (x)
+  (environment env)
+  ,return-point-simple
+  ,set!
+  (import
+    (only (Framework wrappers aux)
+      handle-overflow true false nop)
+    (only (chezscheme) letrec))
+  (call/cc
+    (lambda (k)
+      (set! ,return-address-register k)
+      ,(rewrite-opnds x)))
+  ,return-value-register)
+
 
 (define-language-wrapper expose-basic-blocks/wrapper
   (x)
@@ -550,7 +611,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define-language-wrapper flatten-program/wrapper
@@ -564,7 +625,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
+      ,(rewrite-opnds x)))
   ,return-value-register)
 
 (define (generate-x86-64/wrapper program)
