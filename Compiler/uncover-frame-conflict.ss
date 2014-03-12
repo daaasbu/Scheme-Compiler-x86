@@ -108,7 +108,7 @@
 		    (set! live-ls '())
 		    (let ([tl (Tail tl)])
 		      `(locals (,(difference uv0* (filter uvar? call-live*)) ...)(new-frames ((,uv1* ...) ...) 
-						      (spills (,(filter uvar? call-live*) ...)  
+						      (spills (,(filter uvar? call-live*)...)  
 							      (frame-conflict ,(table-scrub conflict-table) (call-live (,call-live* ...) ,tl)))))))]
                  [else (error who "something went wrong - Body")])
            (Tail : Tail (x) -> Tail ()
@@ -150,6 +150,7 @@
            (Effect : Effect (x) -> Effect ()
                    [(nop) `(nop)]
 		   [(return-point ,l ,tl) (begin (set! call-live* (union call-live* live-ls))
+						 (set! live-ls '())
 						 (let ((tl (Tail tl))) `(return-point ,l ,tl)))] 
 		   [(set! ,v (mref ,triv0 ,triv1)) (begin
 						     (set! live-ls (remove v live-ls))
