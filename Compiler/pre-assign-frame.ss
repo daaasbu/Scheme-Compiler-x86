@@ -7,9 +7,9 @@
           (Framework helpers))
          (define-parser parse-LpreAssignFrame LpreAssignFrame)
 
+;;This pass goes from UFC to PAF, its main purpose is to assign spills to frame-vars, and store them in the locate form.
          (define-pass pre-assign-frame : LuncoverFrameConflict (x) -> LpreAssignFrame ()
            (definitions
-             (define k (length registers))
 
              (define get-conflicts
                (lambda (var c-table)
@@ -20,16 +20,6 @@
                (lambda (var c-table)
                  (let ([conflicts (get-conflicts var c-table)])
                    (length conflicts))))
-
-
-             (define get-lowest-degree
-               (lambda (conflicts* c-table)
-
-                 (car (sort (lambda (x y)
-                              (let* ([con-total-x (conflict-total x c-table)]
-                                     [con-total-y (conflict-total y c-table)])
-                                (< con-total-x con-total-y)))
-                            conflicts*))))
 
              (define order-by-highest-degree
                (lambda (conflicts* c-table)
@@ -47,7 +37,6 @@
 	       (lambda (v)
 		 (equal? "UNSP" (extract-root v))))
 	     
-
              (define remove-var
                (lambda (var c-table)
                  (map
@@ -56,9 +45,25 @@
                         conflicts
                         (remv var conflicts)))
                   c-table)))
+
              (define make-assignment
                (lambda (var fv)
                  `[,var ,fv]))
+
+             (define get-fv-conflicts
+               (lambda (var-conflicts assignments)
+		 (cond
+		  [(null? var-conflicts) '()]
+		  [(not (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments)]
+		  [else(cons (cadr (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments))])))
+
+	     (define find-free-fv
+	       (lambda (total-fv-conflicts n)
+		 (let ((fv (index->frame-var n)))
+		   (cond
+		    [(not (memv fv total-fv-conflicts)) fv]
+		    [else (find-free-fv total-fv-conflicts (add1 n))]))))
+
 
              (define choose-fv
                (lambda (vars c-table-reduced c-table assignments)
@@ -67,31 +72,12 @@
                         [c-table-reduced (remove-var min c-table)])
 		   (choose-fv-helper min vars-reduced c-table-reduced c-table assignments))))
 
-
-             (define get-fv-conflicts
-               (lambda (var-conflicts assignments)
-		 (cond
-		  [(null? var-conflicts) '()]
-		  [(eqv? #f (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments)]
-		  [else(cons (cadr (assq (car var-conflicts) assignments)) (get-fv-conflicts (cdr var-conflicts) assignments))])))
-
-	     (define find-free-fv
-	       (lambda (total-fv-conflicts n)
-		 (let ((fv (index->frame-var n)))
-
-		   (cond
-		    [(not (memv fv total-fv-conflicts)) fv]
-		    [else (find-free-fv total-fv-conflicts (add1 n))]))))
-
-
-
              (define choose-fv-helper
 	       (lambda (pick vars-reduced c-table-reduced c-table assignments)
 		 (let* ([conflicts (get-conflicts pick c-table)]
 			[fv-conflicts (filter (lambda (x) (frame-var? x)) conflicts)]
 			[var-conflicts (difference conflicts fv-conflicts)]
 			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
-
 			[total-fv-conflicts (union fv-conflicts var-fv-conflicts)])
 		   (cond	
 		    [(null? vars-reduced) (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments)]
@@ -99,8 +85,8 @@
              
 	     (define choose-fv-initialize
                (lambda (vars c-table assignments)
-                 (choose-fv vars c-table c-table assignments)
-                 ))
+                 (choose-fv vars c-table c-table assignments)))
+
              (define spill-list '())
 
 	     )
@@ -111,8 +97,6 @@
 				      (spills (,uv3* ...)
 					      (frame-conflict ,cfgraph
 							      (call-live (,uv4* ...) ,[tl])))))
-	
-
 		  (if (null? uv3*) 
 		      `(locals (,uv1* ...)
 			       (new-frames ((,uv2* ...) ...)
@@ -122,15 +106,12 @@
 		      (let ([assignments (choose-fv-initialize uv3* cfgraph '())])
 			(let* ([uvar* (map car assignments)]
 			       [fvar* (map cadr assignments)])
-		;	  (display "cfgraph: ") (newline) (display cfgraph) (newline)
 
 			  `(locals (,uv1* ...)
 				   (new-frames ((,uv2* ...) ...)
 					    (locate ([,uvar* ,fvar*] ...)
 						    (frame-conflict ,cfgraph
 								    (call-live (,uv4* ...) ,tl))))))))]
-		 [else (error who "Body")]
-
 
 		 )
 	   )

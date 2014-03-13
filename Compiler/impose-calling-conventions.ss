@@ -8,6 +8,7 @@
 
          (define-parser parse-LimposeCallingConventions LimposeCallingConventions)
 
+	 ;;Goes from LflattenSet! to LimposeCallingConventions, and its main purpose is to set our local variables to outgoing frame and parameter registers, and place them in our calls. 
 	 (define-pass impose-calling-conventions : LflattenSet! (x) -> LimposeCallingConventions ()
 	   (definitions
 
@@ -27,7 +28,7 @@
 
 	     
 
-	     (define make-effect-block1
+	     (define make-effect-block
 	       (with-output-language (LimposeCallingConventions Effect)
 				     (lambda (uv* pr*)
 				       (define make-block-helper
@@ -67,8 +68,9 @@
 		 [(letrec ([,l* ,le*] ...) (locals (,uv* ...) ,tl)) (let ((rp (make-rp))
 									  (le* (map (lambda (x) (LambdaExpr x (make-rp))) le*)))
 								      (begin (set! Frame* '())
-									     (let ((tl (Tail tl rp)))
-									  `(letrec ([,l* ,le*] ...) (locals (,uv* ... ,rp) (new-frames ((,Frame* ...) ...) (begin (set! ,rp ,return-address-register) ,tl)))))))])
+									     (let* ((tl (Tail tl rp))
+										    (Fr* (apply append Frame*)))
+									       `(letrec ([,l* ,le*] ...) (locals (,uv* ... ,Fr* ... ,rp) (new-frames ((,Frame* ...) ...) (begin (set! ,rp ,return-address-register) ,tl)))))))])
 
 
 	   (LambdaExpr : LambdaExpr (x rp) -> LambdaExpr ()
@@ -77,7 +79,7 @@
 
 
 	   (Tail : Tail (x rp) -> Tail ()
-		 [,triv `(begin (set! ,return-value-register ,triv) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register)) ]
+		 [,triv `(begin (set! ,return-value-register ,triv) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register))]
 		  [(call ,triv0 ,triv* ...)(let* ((set (with-output-language (LimposeCallingConventions Effect) `(set! ,return-address-register ,rp)))
 						  (ef (list set)))
 					    (let-values (((ef* input*) (make-call-block triv* parameter-registers 0 rp))) 
@@ -85,7 +87,7 @@
 		 [(prim ,op ,triv0 ,triv1) `(begin (set! ,return-value-register (,op ,triv0 ,triv1)) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register))]
 		 [(if ,[pred0] ,tl0 ,tl1) `(if ,pred0 ,(Tail tl0 rp) ,(Tail tl1 rp))]
 		 [(begin ,[ef*] ... ,tl) `(begin ,ef* ... ,(Tail tl rp))]
-		 [(alloc ,triv0) `(begin (set! ,return-value-register (alloc ,triv0)) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register))] ;;might need to change back
+		 [(alloc ,triv0) `(begin (set! ,return-value-register (alloc ,triv0)) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register))] 
 		 [(mref ,triv0 ,triv1) `(begin (set! ,return-value-register (mref ,triv0 ,triv1)) (,rp ,frame-pointer-register ,allocation-pointer-register ,return-value-register))])
 
 	   (Pred : Pred (x) -> Pred ()
@@ -96,23 +98,8 @@
 		 [(begin ,[ef*] ... ,[pred]) `(begin ,ef* ... ,pred)])
 
 	   (Effect : Effect (x) -> Effect ()
-		   [(set! ,uv ,rhs)  (Rhs rhs uv)]
-;		   [(set! ,uv (,op ,triv0 ,triv1))  `(set ,uv (,op ,triv0 ,triv1))]
-		   #;[(set! ,uv (call ,triv ,triv* ...)) 
-		      (let-values (((ef-first input* nfv*) (make-effect-block1 triv* parameter-registers)))
-			(let* ((RPL (make-rp-label))
-			       (return `(set! ,return-address-register ,RPL))
-			       (calls (in-context Tail `(,triv ,frame-pointer-register ,return-address-register ,input* ...)))
-			       (ef* (append ef-first (list return)))
-			       (tl (in-context Tail `(begin ,ef* ... ,calls)))
-			       (block  `(return-point ,RPL ,tl))
-			       (ef `(set! ,uv ,return-value-register)))
-		
-			  (begin (set! Frame* (cons nfv* Frame*)) 
-				 `(begin ,block ,ef))))]
-				
-				 
-		   [(call ,triv ,triv* ...) (let-values (((ef* input* nfv*) (make-effect-block1 triv* parameter-registers)))
+		   [(set! ,uv ,rhs)  (Rhs rhs uv)]		
+		   [(call ,triv ,triv* ...) (let-values (((ef* input* nfv*) (make-effect-block triv* parameter-registers)))
 					     (begin (set! Frame* (cons nfv* Frame*)) (let ((RPL (make-rp-label))) `(return-point ,RPL (begin ,(append ef* (list `(set! ,return-address-register ,RPL))) ... (,triv ,frame-pointer-register ,allocation-pointer-register ,return-address-register ,input* ...))))))]
 		   [(if ,[pred] ,[ef0] ,[ef1]) `(if ,pred ,ef0 ,ef1)]
 		   [(begin ,[ef*] ... ,[ef]) `(begin ,ef* ... ,ef)]
@@ -121,7 +108,7 @@
 	   (Rhs : Rhs (x uv) -> * ()
 		[,triv (in-context Effect `(set! ,uv ,triv))]
 		[(,op ,triv0 ,triv1) (in-context Effect `(set! ,uv (,op ,triv0 ,triv1)))]
-		[(call ,triv ,triv* ...) (let-values (((ef-first input* nfv*) (make-effect-block1 triv* parameter-registers)))
+		[(call ,triv ,triv* ...) (let-values (((ef-first input* nfv*) (make-effect-block triv* parameter-registers)))
 					   (let* ((RPL (make-rp-label))
 						  (return (in-context Effect `(set! ,return-address-register ,RPL)))
 						  (calls (in-context Tail `(,triv ,frame-pointer-register ,allocation-pointer-register ,return-address-register ,input* ...)))

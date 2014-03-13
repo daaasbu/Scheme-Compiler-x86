@@ -61,10 +61,13 @@
                    (else (let ((cell (proc (car ls)))) 
 			   (cons cell (map* proc (cdr ls))))))))
 
-             (define Ef*
-               (lambda (ef*)
-                 (reverse (map* Effect (reverse ef*)))))
+	     (define Ef*
+	       (lambda (ef*)
+		 (reverse-map Effect ef*)))
 
+	     (define reverse-map
+	       (lambda (proc ls)
+		 (reverse (map* proc (reverse ls)))))
 
 	     (define nfv?
 	       (lambda (nfv)
@@ -80,6 +83,7 @@
 
 
 ;;ADDED THIS FUNCTION TO APPLY TO CFGRAPH TO MATCH ONLINE COMPILER, unsure of why RP's don't conflict with NFV's
+	    
 	     (define table-scrub
 	       (lambda (cfgraph)
 		 (map (lambda (x) (cond 
@@ -87,7 +91,6 @@
 				   [(rp? (car x)) (filter (lambda (y) (not (nfv? y))) x)]
 				   [else x]))
 		      cfgraph)))
-		 
 
 
 	     (define call-live* '())
@@ -95,11 +98,10 @@
              )
 ;;DIDNT DO ANYTHING TO HANDLE NFV's could be possible source of error in future. 
            (Prog : Prog (x) -> Prog ()
-                 [(letrec ([,l* ,[le*]] ...) ,[bd]) `(letrec ([,l* ,le*] ...) ,bd)]
-                 [else (error who "something went wrong - Prog")])
+                 [(letrec ([,l* ,[le*]] ...) ,[bd]) `(letrec ([,l* ,le*] ...) ,bd)])
+
            (LambdaExpr : LambdaExpr (x) -> LambdaExpr ()
-                       [(lambda () ,[bd]) `(lambda () ,bd)]
-                       [else (error who "something went wrong - LambdaExpr")])
+                       [(lambda () ,[bd]) (begin (set! call-live* '()) `(lambda () ,bd))])
 
            (Body : Body (x) -> Body ()
                  [(locals (,uv0* ...) (new-frames ((,uv1* ...) ...) ,tl)) 
@@ -109,13 +111,11 @@
 		    (let ([tl (Tail tl)])
 		      `(locals (,(difference uv0* (filter uvar? call-live*)) ...)(new-frames ((,uv1* ...) ...) 
 						      (spills (,(filter uvar? call-live*)...)  
-							      (frame-conflict ,(table-scrub conflict-table) (call-live (,call-live* ...) ,tl)))))))]
-                 [else (error who "something went wrong - Body")])
+							      (frame-conflict ,(table-scrub conflict-table) (call-live (,call-live* ...) ,tl)))))))])
+
            (Tail : Tail (x) -> Tail ()
                  [(,triv ,locrf* ...) (begin
-                                        
-                                        (set! live-ls (union (remove-reg (set-cons triv locrf*)) live-ls))
-                                        
+                                        (set! live-ls (union (remove-reg (set-cons triv locrf*)) live-ls))    
                                         (in-context Tail `(,triv ,locrf* ...)))]
                  [(begin ,ef* ... ,tl) (begin
                                          (let* ([a (Tail tl)]
@@ -128,6 +128,7 @@
                                          `(if ,c ,b ,a)))]
                  [(mref ,[triv0] ,[triv1]) `(mref ,triv0 ,triv1)]
 		 [(alloc ,[triv0]) `(alloc ,triv0)])
+
            (Pred : Pred (x) -> Pred ()
                  [(true) `(true)]
                  [(false) `(false)]
@@ -145,12 +146,10 @@
                  [(begin ,ef* ... ,pred) (begin
                                            (let* ([a (Pred pred)]
                                                   [b (Ef* ef*)])
-                                           `(begin ,b ... ,a)))]
-                 [else (error who "something went wrong - Pred")])
+                                           `(begin ,b ... ,a)))])
            (Effect : Effect (x) -> Effect ()
                    [(nop) `(nop)]
 		   [(return-point ,l ,tl) (begin (set! call-live* (union call-live* live-ls))
-						 (set! live-ls '())
 						 (let ((tl (Tail tl))) `(return-point ,l ,tl)))] 
 		   [(set! ,v (mref ,triv0 ,triv1)) (begin
 						     (set! live-ls (remove v live-ls))
@@ -163,39 +162,24 @@
 						       `(set! ,v (mref ,triv0 ,triv1))))]
 		   [(mset! ,[triv0] ,[triv1] ,[triv2]) `(mset! ,triv0 ,triv1 ,triv2)] ;;May need to update table here
         
-                   [(set! ,v ,triv) (begin
-;				       
-;				       
-                                                   
-				       (set! live-ls (remove v live-ls))
-;				       
+                   [(set! ,v ,triv) (begin                                                   
+				       (set! live-ls (remove v live-ls))				       
                                       (cond
 				       ((and (uvar? v) (or (frame-var? triv) (uvar? triv)))
 					(set! conflict-table (update-table v (remove triv live-ls) conflict-table)))
                                         ((uvar? v)
-;					 (display "v: ") (display v) (newline) (display "triv: ") (display triv) (newline)
-;					 (display "live-ls: ") (display live-ls) (newline)
                                          (set! conflict-table (update-table v live-ls conflict-table)))
 					((and (frame-var? v) (or (frame-var? triv) (uvar? triv))) (set! conflict-table (update-table-reg v (remove triv live-ls) conflict-table)))
-					((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
-;				      
-			
+					((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))	
                                       (let* ([a (Triv triv)])
                                       `(set! ,v ,a)))]
                    [(set! ,v (,op ,triv1 ,triv2)) (begin
-;                                                   
                                                     (set! live-ls (remv v live-ls))
-;						    
-                                                    (cond
-						     
+                                                    (cond 
                                                      ((uvar? v) (set! conflict-table (update-table v live-ls conflict-table)))
                                                      ((frame-var? v) (set! conflict-table (update-table-reg v live-ls conflict-table))))
-;                                                   
                                                     (let* ([a (Triv triv2)]
-                                                           [b (Triv triv1)])
-;						    
-;						    
-                                                    
+                                                           [b (Triv triv1)])              
                                                     `(set! ,v (,op ,b ,a))))]
                    [(if ,pred ,ef1 ,ef2) (begin
                                            (let* ([a (Effect ef2)]
@@ -205,13 +189,10 @@
                    [(begin ,ef* ... ,ef) (begin
                                            (let* ([a (Effect ef)]
                                                   [b (Ef* ef*)])
-                                           `(begin ,b ... ,a)))]
-                   #;[else (error who "something went wrong - Effect")])
+                                           `(begin ,b ... ,a)))])
            (Triv : Triv (x) -> Triv ()
                  [,v (if (or (frame-var? v) (uvar? v)) (set! live-ls (set-cons v live-ls)))
-                     `,v]
-                 [,i `,i]
-                 [,l `,l]))
+                     `,v]))
 ) ;End Library
 
 

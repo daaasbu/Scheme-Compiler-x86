@@ -1,15 +1,14 @@
-;;verify-scheme, takes our subset of scheme consisting of mainly letrecs, effects,registers,frame-vars, labels and lambda expressions, and goes through a series of tests that targets a certain machine.These tests could change depending on the target of our compiler.  Goes from LverifyScheme to LverifyScheme.
-;;
+
 (library (Compiler select-instructions)
-         (export select-instructions #;parse-LassignNewFrame)
+         (export select-instructions)
          (import
           (chezscheme)
           (source-grammar)
           (Framework nanopass)
           (Framework helpers))
 
-	 ;(define-parser parse-LassignNewFrame LassignNewFrame)
-	 
+
+;;This pass goes from LANF to LANF, and its main purpose is to modify our code to insure that it fits the machine constraints of x86.
          (define-pass select-instructions : LassignNewFrame (x) -> LassignNewFrame ()
 
 
@@ -69,7 +68,7 @@
 	       (lambda (var binop UNSP triv2)
 		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv2)))
 		       (store2 (with-output-language (LassignNewFrame Effect) `(set! ,var (,binop ,var ,UNSP))))
-		       (combine (list store1))) #;maybeheretoo
+		       (combine (list store1)))
 	        `(begin ,combine ... ,store2)))))
 
 	     
@@ -93,8 +92,8 @@
 		  [(and (commutative? binop) (eqv? var triv2)) (BINOP2 var binop triv2 triv1)]
 		  [else (let* ([UNSP (new-UNSP)]
 			      [store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv1))]
-			      [store2 #;(with-output-language (LassignNewFrame Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2)]
-			      #;possiblechange	      [store3 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP))]
+			      [store2 (BINOP2 UNSP binop UNSP triv2)]
+			      [store3 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP))]
 			      [combine (list store1 store2)])
 			  (BINOP1-h combine store3))])))
 	 
@@ -108,7 +107,7 @@
 	       (with-output-language (LassignNewFrame Effect)
 				     (lambda (var binop UNSP triv2)
 				       (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,var)))
-					      (store2 #;(with-output-language (LassignNewFrame Effect) `(set! ,UNSP (,binop ,UNSP ,triv2))) (BINOP2 UNSP binop UNSP triv2))
+					      (store2  (BINOP2 UNSP binop UNSP triv2))
 					      (store3 (with-output-language (LassignNewFrame Effect) `(set! ,var ,UNSP)))
 					      (combine (list store1 store2))) #;heretoo
  					 `(begin ,combine ... ,store3)))))
@@ -130,8 +129,7 @@
 		       (let* ([UNSP (new-UNSP)]) 
 			 (X1 var binop UNSP triv2))]
 
-		  [(and (eqv? '* binop) (and (frame-var? var) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2) (int64/label? triv2))))  ;;added more checks
-		
+		  [(and (eqv? '* binop) (and (frame-var? var) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2) (int64/label? triv2))))  		
 		       (let* ([UNSP (new-UNSP)])    
 			 (X2 var binop UNSP triv2))]
 		  [else 
@@ -153,7 +151,7 @@
 		 (let* ((store1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP ,triv1)))
 		       (store2 (with-output-language (LassignNewFrame Pred) `(,relop ,UNSP ,triv2)))
 		       (combine (list store1)))
-		 `(begin ,combine ... ,store2))))) #;maybeheretoo
+		 `(begin ,combine ... ,store2))))) 
 	     
 	     (define X6
 	       (with-output-language (LassignNewFrame Pred)
@@ -175,13 +173,13 @@
 	     (define RELOP1
 	       (lambda (relop triv1 triv2)
 		 (cond
- #;X4		  [(and (int32? triv1) (or (uvar/reg? triv2) (frame-var? triv2))) 
-		   (X4 relop triv1 triv2)];good on tests, and X6
-#;X5              [(or (and (frame-var? triv1) (frame-var? triv2)) (and (int32? triv1) (int32? triv2)) (and (int64/label? triv1) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2))))
-		   (X5 (new-UNSP) relop triv1 triv2)] ;good on tests, and X5
-#;X6              [(or (and (uvar/reg? triv1) (int64/label? triv2)) (and (frame-var? triv1) (int64/label? triv2)) (and (int32? triv1) (int64/label? triv2))) 
-		   (X6 (new-UNSP) relop triv1 triv2)];good on tests,
-#;X7              [(and (int64/label? triv1) (int64/label? triv2)) 
+ 		  [(and (int32? triv1) (or (uvar/reg? triv2) (frame-var? triv2))) 
+		   (X4 relop triv1 triv2)]
+		  [(or (and (frame-var? triv1) (frame-var? triv2)) (and (int32? triv1) (int32? triv2)) (and (int64/label? triv1) (or (uvar/reg? triv2) (frame-var? triv2) (int32? triv2))))
+		   (X5 (new-UNSP) relop triv1 triv2)] 
+		  [(or (and (uvar/reg? triv1) (int64/label? triv2)) (and (frame-var? triv1) (int64/label? triv2)) (and (int32? triv1) (int64/label? triv2))) 
+		   (X6 (new-UNSP) relop triv1 triv2)]
+		  [(and (int64/label? triv1) (int64/label? triv2)) 
 		   (X7 (new-UNSP) (new-UNSP) relop triv1 triv2)]
 		  [else (RELOP1-h relop triv1 triv2)])))
 	    
@@ -189,61 +187,106 @@
 	     (with-output-language (LassignNewFrame Pred)
 	       (lambda (relop triv1 triv2)
 		 `(,relop ,triv1 ,triv2))))
-
+;;Interesting. If triv0 or triv1 is an integer, then you must assign it to a register. I wonder if it because we are doing
+;;make-disp or make-index wrong somewhere else down the line. 
 	   (define MREF
 	     (lambda (v triv0 triv1)
 	       (cond
-		((and (or (uvar? v) (register? v) (or (uvar? v) (register? triv0) (int32? triv1))))
+		((and (or (uvar? v) (register? v)) (or (uvar? triv0) (register? triv0)) (or  (uvar? triv1) (register? triv1)))
 		 (with-output-language (LassignNewFrame Effect) `(set! ,v (mref ,triv0 ,triv1))))
-		((or (register? v) (uvar? v))
-		 (let* ((UNSP0 (new-UNSP))
-			(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,triv0)))
+		((and (or (uvar? v) (register? v)) (or (uvar? triv0) (register? triv0)))
+		 (let*
+		     ((UNSP1 (new-UNSP))
+		      	(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(ef* (list ef1))
+			(ef (with-output-language (LassignNewFrame Effect) `(set! ,v (mref ,triv0 ,UNSP1)))))
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+		((and (or (uvar? v) (register? v)) (or (uvar? triv1) (register? triv1)))
+		 (let*
+		     ((UNSP0 (new-UNSP))
+		      	(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,triv0)))
 			(ef* (list ef0))
 			(ef (with-output-language (LassignNewFrame Effect) `(set! ,v (mref ,UNSP0 ,triv1)))))
 		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
-		((or (register? triv0) (uvar? triv0))
-		 (let* ((UNSP0 (new-UNSP))
-			(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,v)))
-			(ef* (list ef0))
-			(ef (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 (mref ,triv0 ,triv1)))))
-		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+		 
+		 
+	       ;MAYBE COULD HAVE MORE TESTS AND MORE PRECISE SITUATIONS, but idk.
+		;possibly inefficient if there are more situations when you dont need to spill.
 		(else
 		 (let* ((UNSP0 (new-UNSP))
 			(UNSP1 (new-UNSP))
-			(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,v)))
-			(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv0)))
-			(ef* (list ef0 ef1))
-			(ef (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 (mref ,UNSP1 ,triv1)))))
+			(UNSP2 (new-UNSP))
+			(UNSP3 (new-UNSP))
+			(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,triv0)))
+			(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(ef2 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP2 (mref ,UNSP0 ,UNSP1))))
+			(ef3 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP3 ,UNSP2)))
+			(ef (with-output-language (LassignNewFrame Effect) `(set! ,v ,UNSP3)))
+			(ef* (list ef0 ef1 ef2 ef3)))
 		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef)))))))
-		 
- 
+
+
+	  ;IF YOU EVER EVER HAVE AN ERROR IN SELECT INSTRS. SOMEWHERE DOWN THE ROAD, SWITCH OUT THE COMMENTED LINES, YOU DID THIS BAS
+	  ;ON TRIAL AND ERROR, SO THERE MAY HAVE JUST NOT BEEN A TEST CASE WHEN THIS WAS RELEVANT.
+	  ;IF THAT DID NOT WORK, THEN COMMENT OUT EVERYTHING BUT ELSE LINE. SHOULD ENSURE ALL PASSES BUT VERY INEFFCIENT.
 	   (define MSET!
 	     (lambda (triv1 triv2 triv3)
 	       (cond
-		[(or (int32? triv1) (uvar? triv1))
-		 (if (or (int32? triv2) (uvar? triv2))
-		     (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,triv2 ,triv3))
-		     (let* ((UNSP0 (new-UNSP))
-			    (ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP0 ,triv2)))
-			    (ef (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,UNSP0 ,triv3))))
-		       (with-output-language (LassignNewFrame Effect) `(begin ,ef0 ,ef))))]
-		[(or (int32? triv2) (uvar? triv2))
-		 (if (or (int32? triv1) (uvar? triv1))
-		     (with-output-language (LassignNewFrame Effect)`(mset! ,triv1 ,triv2 ,triv3)))
+		((and (or (uvar? triv1) (register? triv1)) (or (int32? triv2) (uvar? triv2) (register? triv2)) (or (int32? triv3) (uvar? triv3) (register? triv3)))
+		 (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,triv2 ,triv3)))
+		((and (or (uvar? triv1) (register? triv1)) (or (int32? triv3) (uvar? triv3) (register? triv3)))
+		 (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,triv2 ,triv3)))
+
+		((and (or (uvar? triv1) (register? triv1)) (or (int32? triv2) (uvar? triv2) (register? triv2)))
+		 (let* ((UNSP3 (new-UNSP))
+			(ef3 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP3 ,triv3)))
+			(ef* (list ef3))
+			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,triv2 ,UNSP3))))
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+
+		((and (or (int32? triv2) (uvar? triv2) (register? triv2))  (or (int32? triv3) (uvar? triv3) (register? triv3)))
 		 (let* ((UNSP1 (new-UNSP))
-			(ef0 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(ef* (list ef1))
 			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,UNSP1 ,triv2 ,triv3))))
-		   (with-output-language (LassignNewFrame Effect) `(begin ,ef0 ,ef)))]
-		[else 		     
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+		((or (uvar? triv1) (register? triv1))
+		 (let* ((UNSP2 (new-UNSP))
+			(UNSP3 (new-UNSP))
+			(ef2 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP2 ,triv2)))
+	#;		(ef3 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP3 ,triv3)))
+			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,triv1 ,UNSP2 ,triv3)))
+			(ef* (list ef2))
+	#;		(ef* (list ef2 ef3)))
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+		((or (int32? triv2) (uvar? triv2) (register? triv2))
+		 (let* ((UNSP1 (new-UNSP))
+			(UNSP3 (new-UNSP))
+			(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+			(ef3 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP3 ,triv3)))
+			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,UNSP1 ,triv2 ,UNSP3)))
+			(ef* (list ef1 ef3)))
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))
+		((or (int32? triv3) (uvar? triv3) (register? triv3))
 		 (let* ((UNSP1 (new-UNSP))
 			(UNSP2 (new-UNSP))
 			(ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
 			(ef2 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP2 ,triv2)))
-			(ef* (list ef1 ef2))
-			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,UNSP1 ,UNSP2 ,triv3))))
-		       (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef)))])))
-
-		
+			(ef (with-output-language (LassignNewFrame Effect) `(mset! ,UNSP1 ,UNSP2 ,triv3)))
+			(ef* (list ef1 ef2)))
+		   (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef))))		
+		(else 
+ 	       (let* ((UNSP1 (new-UNSP))
+		      (UNSP2 (new-UNSP))
+		      (UNSP3 (new-UNSP))
+		      (UNSP4 (new-UNSP))
+		      (ef1 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP1 ,triv1)))
+		      (ef2 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP2 ,triv2)))
+		      (ef3 (with-output-language (LassignNewFrame Effect) `(set! ,UNSP3 ,triv3)))
+		      (ef4 (with-output-language (LassignNewFrame Effect) `(mset! ,UNSP1 ,UNSP2 ,UNSP3)))
+		      (ef* (list ef1 ef2 ef3)))
+		 (with-output-language (LassignNewFrame Effect) `(begin ,ef* ... ,ef4)))))))
+		     
 	 
 )
 	   
@@ -269,8 +312,8 @@
 		 [(,triv ,locrf* ...) `(,triv ,locrf* ...) ]
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2) ]
 
-		 [(alloc ,triv0) `(alloc ,triv0)] ;;ryan's changes
-		 [(mref ,triv0 ,triv1) `(mref ,triv0 ,triv1)]) ;;ryan's changes
+		 [(alloc ,triv0) `(alloc ,triv0)] 
+		 [(mref ,triv0 ,triv1) `(mref ,triv0 ,triv1)]) 
 
 	   
 	   (Pred : Pred (x) -> Pred ()

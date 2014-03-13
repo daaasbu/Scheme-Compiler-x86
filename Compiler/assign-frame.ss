@@ -6,28 +6,10 @@
           (Framework nanopass)
           (Framework helpers))
 
-         #|
-	 (define get-reg-conflicts
-	 (lambda (var-conflicts c-table)
-	 (let ([var (car var-conflicts)]
-	 [conflicts (get-conflicts var c-table)]
-	 [reg-conflicts (intersection conflicts registers)])      
-	 (cond
-	 [(null? var-conflicts) '()]
-	 [else (append reg-conflicts (get-reg-conflicts var-conflicts c-table))]))))
-	 |#
-
-         #|
-	 (define low-degree?
-	 (lambda (var c-table)
-	 (let ([total (conflict-total var c-table)])
-	 (< total k))))
-	 |#
-      ;   (define-parser parse-LassignFrame LassignFrame)
-
-         (define-pass assign-frame : LassignRegisters (x) -> LassignNewFrame ()
+;;The purpose of this pass is to determine which high-degree variables we need to spill.
+        (define-pass assign-frame : LassignRegisters (x) -> LassignNewFrame ()
            (definitions
-             (define k (length registers))
+
 
              (define get-conflicts
                (lambda (var c-table)
@@ -39,15 +21,6 @@
                  (let ([conflicts (get-conflicts var c-table)])
                    (length conflicts))))
 
-
-             (define get-lowest-degree
-               (lambda (conflicts* c-table)
-
-                 (car (sort (lambda (x y)
-                              (let* ([con-total-x (conflict-total x c-table)]
-                                     [con-total-y (conflict-total y c-table)])
-                                (< con-total-x con-total-y)))
-                            conflicts*))))
 
              (define order-by-highest-degree
                (lambda (conflicts* c-table)
@@ -74,6 +47,7 @@
                         conflicts
                         (remv var conflicts)))
                   c-table)))
+
              (define make-assignment
                (lambda (var fv)
                  `[,var ,fv]))
@@ -96,7 +70,6 @@
 	     (define find-free-fv
 	       (lambda (total-fv-conflicts n)
 		 (let ((fv (index->frame-var n)))
-		  
 		   (cond
 		    [(not (memv fv total-fv-conflicts)) fv]
 		    [else (find-free-fv total-fv-conflicts (add1 n))]))))
@@ -109,42 +82,21 @@
 			[fv-conflicts (filter (lambda (x) (frame-var? x)) conflicts)]
 			[var-conflicts (difference conflicts fv-conflicts)]
 			[var-fv-conflicts (get-fv-conflicts var-conflicts assignments)]
-
 			[total-fv-conflicts (union fv-conflicts var-fv-conflicts)])
-	;	   (display "pick: ") (display pick) (newline)
-;		   (display "conflicts: ") (display conflicts) (newline)
-;		   (display "fv-conflicts: ") (display fv-conflicts) (newline)
-;		   (display "var-conflicts: ") (display var-conflicts) (newline)
-;		   (display "assignments: ") (display assignments) (newline)
-;		   (display "var-fv-conflicts: ") (display var-fv-conflicts) (newline)
-;		   (display "I have looped") (newline)
-		
 		   (cond						 
 		    [(null? vars-reduced) (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments)]
 		    [else (choose-fv vars-reduced c-table-reduced c-table (cons (make-assignment pick (find-free-fv total-fv-conflicts 0)) assignments))]))))
              
 	     (define choose-fv-initialize
                (lambda (vars c-table assignments)
-					;(display c-table)
-                 (choose-fv vars c-table c-table assignments)
-                 ))
-             (define spill-list '())
+                 (choose-fv vars c-table c-table assignments)))
+            
+	     (define spill-list '())
 	     
 
              
              )
            
-	   
-#|
-	   (Body : Body (x) -> Body ()
-		 
-		 [(locals (,uv* ...) (register-conflict ,cfgraph ,[tl]))   
-		       (if (and (null? cfgraph) (null? uv*)) `(locate () ,tl)
- 			`(locate ([,uvar* ,reg*] ...) ,tl))
-		 
-		      
-		      )]
-|#		 	   
 	   (Body : Body (x) -> Body ()
 		 [(locals (,uv1* ...) 
 			  (ulocals (,uv2* ...)
@@ -157,18 +109,12 @@
 		      (let ([assignments (choose-fv-initialize uv4* cfgraph1 (map (lambda (x y) (list x y)) uv3* locrf*))])
 			(let* ([uvar* (map car assignments)]
 			       [reg* (map cadr assignments)])
-;			  (display "ulocals: ") (display uv2*) (newline)
-;			  (display "locate: ") (display uv3*) (newline)
-;			  (display "spills:") (display uv4*) (newline)
 			  `(locals (,uv1* ...)
 				   (ulocals (,uv2* ...)
 				   (locate ([,uvar*  ,reg*] ...)
 					   (frame-conflict ,cfgraph1 ,tl)))))))]
 		 
-		 [(locate ((,uv** ,locrf*) ...) ,[tl]) #;(display "Do I match here?")  `(locate ((,uv** ,locrf*) ...) ,tl)]
-		 [else (error who "Body")]
-
-
+		 [(locate ((,uv** ,locrf*) ...) ,[tl]) `(locate ((,uv** ,locrf*) ...) ,tl)]
 		 )
 	   )
 	 ) ;End Library

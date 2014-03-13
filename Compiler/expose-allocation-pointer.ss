@@ -7,29 +7,10 @@
           (Framework nanopass)
           (Framework helpers))
 
-         ;(define-parser parse-LexposeAllocationPointer )
-
+	 ;;Goes from LimposeCallingConventions to LexposeAllocationPointer. This passes main purpose is to remove alloc from our language by setting whatever was being set to alloc, and then we bump the allocation pointer by the amount          ;;of space that we wanted to allocate.
          (define-pass expose-allocation-pointer : LimposeCallingConventions (x) -> LexposeAllocationPointer ()
-
-
 	   (Effect : Effect (x) -> Effect ()
 		   [(set! ,v (alloc ,triv)) (let ((ef1 `(set! ,v ,allocation-pointer-register))
 						  (ef2 `(set! ,allocation-pointer-register (+ ,allocation-pointer-register ,triv))))
 		     
-					      `(begin ,ef1 ,ef2))])
-	   
-
-#|
-	   (Tail : Tail (x) -> Tail ()
-		 [(alloc ,triv) (let* (ef `(set! ,allocation-pointer-register (+ ,allocation-pointer-register ,triv)))]
-		 [(,triv ,locrf* ...) `(,triv ,locrf* ...)]
-		 [(mref ,triv0 ,triv1) `(mref ,triv0 ,triv1)]
-		 [(if ,[pred] ,[tl0] ,[tl1]) `(if ,pred ,tl0 ,tl1)]
-		 [(begin ,[ef*] ... ,[tl]) `(begin ,ef* ... ,tl)]
-		 [else (error who "In Tail")])
-|#
-
-
-)
-     
-) ;End Library
+					      `(begin ,ef1 ,ef2))]))) ;End Library

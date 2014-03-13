@@ -8,36 +8,52 @@
           (Framework nanopass)
           (Framework helpers))
 
-         (define binop?
-           (lambda (x)
-             (if (memq x '(+ - * logand logor sra)) #t #f)))
-         (define lookup
-           (lambda (x env)
-             (member x env)))
-         (define duplicate-labels?
-           (lambda (env)
-             (cond
-              [(null? env) #t]
-              [(member (car env) (cdr env)) #f]
-              [else (duplicate-labels? (cdr env))])))
-         (define suffix-list
-           (lambda (ls)
-             (duplicate-labels? (map extract-suffix ls))))
-
-	 (define label-ls '())
-
          (define-parser parse-LverifyScheme LverifyScheme)
-
+	 
+	 ;;Simply checks if input values follow our grammar and language restrictions.
          (define-pass verify-uil : LverifyScheme (x) -> LverifyScheme ()
+	   (definitions
+	     
+	     ;;pred to determine a binop
+	     (define binop?
+	       (lambda (x)
+		 (if (memq x '(+ - * logand logor sra)) #t #f)))
+
+	     ;;simple lookup function to see if a variable is stored in our env.
+	     (define lookup
+	       (lambda (x env)
+		 (member x env)))
+
+	     ;;recurses over env to see if there are any duplicate labels in it.
+	     (define duplicate-labels?
+	       (lambda (env)
+		 (cond
+		  [(null? env) #t]
+		  [(member (car env) (cdr env)) #f]
+		  [else (duplicate-labels? (cdr env))])))
+
+	     ;;checks to see if there are unique suffixes.
+	     (define suffix-list
+	       (lambda (ls)
+		 (duplicate-labels? (map extract-suffix ls))))
+
+	     (define label-ls '())
+
+
+
+	     )
+
            (Prog : Prog (x) -> Prog ()
                  [(letrec ([,l* ,[le*]] ...) ,bd)
 		  (set! label-ls (append l* label-ls))
+		  ;;applies suffix-list to our list of labels to check for duplicates
                   (unless (suffix-list l*) (error who "Duplicate Labels"))
-                   `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x l*)) le*)] ...) ,(Body bd l*))])
+		  `(letrec ([,l* ,(map (lambda (x) (LambdaExpr x l*)) le*)] ...) ,(Body bd l*))])
            (LambdaExpr : LambdaExpr (x env) -> LambdaExpr ()
                        [(lambda (,uv* ...) ,bd)  `(lambda (,uv* ...) ,(Body bd (append uv* env)))])
            (Body : Body (x env) -> Body ()
                  [(locals (,uv* ...) ,tl)
+		  ;;checks for duplicate suffixes in uvar list
                   (unless (suffix-list uv*) (error who "Duplicate uvar's"))
                   `(locals (,uv* ...) ,(Tail tl (append uv* env)))])
            (Tail : Tail (x env ) -> Tail ()
@@ -56,7 +72,7 @@
            (Effect : Effect (x env ) -> Effect ()
                    [(set! ,uv ,val)
                     (if (uvar? uv)  (unless (lookup uv env) (error who "not in env")))
-                   (Value val env) x]
+		    (Value val env) x]
 		   [(if ,pred0 ,ef0 ,ef1) (Pred pred0 env) (Effect ef0 env) (Effect ef1 env)  x]
 		   [(begin ,ef* ... ,ef) (map (lambda (x) (Effect x env)) ef*) (Effect ef env)  x]
 		   [(nop) x]
@@ -66,7 +82,7 @@
 		  [(call ,[val] ,[val*] ...) `(call ,val ,val* ...)]
 		  [(if ,pred ,val0 ,val1) (Pred pred env) (Value val0 env) (Value val1 env) x]
 		  [(prim ,op ,val0 ,val1)
-                    (if  (eqv? op `sra)
+		   (if  (eqv? op `sra);;checks sra machine constraint impose from x86 arch.
                         (unless (and  (integer? val1) (<= 0 val1) (>= 63 val1))
                                 (error who "sra out of bounds/not a number" val1))) (Value val0 env) (Value val1 env) x]
 		  [(begin ,ef* ... ,val) (map (lambda (x) (Effect x env)) ef*) (Value val env) x])
@@ -75,4 +91,4 @@
 		 [,i i]
 		 [,l (unless (lookup l label-ls) (error who "label not in env")) x])))
 
-	      
+

@@ -14,14 +14,6 @@
 ;;; number displacment each displacement is the original frame var
 ;;; number multiplied by the word size (8 for 64-bit target machine)
 ;;; to get the byte offset.
-;;; (i.e. fv0 => (make-disp-opnd frame-pointer-register 0)
-;;; fv1 => (make-disp-opnd frame-pointer-register 8)
-;;; fv2 => (make-disp-opnd frame-pointer-register 16)
-;;; fv3 => (make-disp-opnd frame-pointer-register 24)
-;;; ... well you get the idea.)
-;;;
-;;; Note: we use shift left by word-shift (3 for 64-bit target
-;;; machine) to calculate the multiplication.
 
   (define-pass expose-frame-var : LfinalizeLocations (x) -> LexposeFrameVar ()
     (definitions
@@ -29,8 +21,6 @@
 	(lambda (r)
 	  (equal? r frame-pointer-register)))
 
-
-;;BEWARE POSSIBLE ERROR
       (define flip-sign
 	(lambda (op)
 	  (case op
