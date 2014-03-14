@@ -1,17 +1,17 @@
 ;;verify-scheme, takes our subset of scheme consisting of mainly letrecs, effects,registers,frame-vars, labels and lambda expressions, and goes through a series of tests that targets a certain machine.These tests could change depending on the target of our compiler.  Goes from LverifyScheme to LverifyScheme.
 ;;
 (library (Compiler verify-uil)
-         (export verify-uil parse-LverifyScheme)
+         (export verify-uil)
          (import
           (chezscheme)
           (source-grammar)
           (Framework nanopass)
           (Framework helpers))
 
-         (define-parser parse-LverifyScheme LverifyScheme)
+         
 	 
 	 ;;Simply checks if input values follow our grammar and language restrictions.
-         (define-pass verify-uil : LverifyScheme (x) -> LverifyScheme ()
+         (define-pass verify-uil : LremoveLet (x) -> LremoveLet ()
 	   (definitions
 	     
 	     ;;pred to determine a binop

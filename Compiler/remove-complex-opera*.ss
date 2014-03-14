@@ -10,7 +10,7 @@
 
 	 ;;This pass goes from LverifyScheme to LremoveComplexOpera*. Its purpose is to unnest prims and calls, and replace all not-nested? operations by using set!'s to uvariables.
 	 ;;It replaces all complex operations in call with uvars, and it unnests the complex calls, and set!'s them to uvars.
-	 (define-pass remove-complex-opera* : LverifyScheme (x) -> LremoveComplexOpera* ()
+	 (define-pass remove-complex-opera* : LremoveLet (x) -> LremoveComplexOpera* ()
 
 	   (definitions
 	     ;;Global list to store new variables we are making in calls.
