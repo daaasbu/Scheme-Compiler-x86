@@ -8,7 +8,7 @@
 
 	 ;; Midterm TODO: Complete this pass definition.
 
-	 (define-pass uncover-locals : LverifyScheme (x) -> LuncoverLocals ()
+	 (define-pass uncover-locals : LspecifyRepresentation (x) -> LuncoverLocals ()
 	   ;; Use a mutable accumulator strategy here.  Don't forget to initialize it to the empty list:
 	   (definitions 
 	     (define locals-accum '())

@@ -3,6 +3,8 @@
     ptr->datum
     env
     alloc
+    prim 
+    call
     handle-overflow
     set!
     rewrite-opnds
@@ -286,10 +288,18 @@
                       (+ disp-vector-data (fxsll i word-shift))
                       ptr))))))]
         [else (errorf 'ptr->datum "can't handle ~s" ptr)]))))
+(define-syntax call 
+  (syntax-rules ()
+    ((_ x x* ...) (x x* ...))))
+
+(define-syntax prim
+  (syntax-rules ()
+    ((_ x x* ...) (x x* ...))))
 )
 
 (library (Framework wrappers)
   (export
+    pass->unparser
     pass->wrapper
     source/wrapper
     verify-scheme/wrapper
@@ -318,30 +328,47 @@
     generate-x86-64/wrapper)
   (import
     (except (chezscheme) set!)
+    ;(Framework match)
+    ;(chezscheme)
+    (source-grammar)
     (Framework match)
-    (Framework GenGrammars l22-verify-uil)
-    (Framework GenGrammars l23-remove-complex-opera)
-    (Framework GenGrammars l24-flatten-set)
-    (Framework GenGrammars l25-impose-calling-conventions)
-    (Framework GenGrammars l26-expose-allocation-pointer)
-    (Framework GenGrammars l27-uncover-frame-conflict)
-    (Framework GenGrammars l28-pre-assign-frame)
-    (Framework GenGrammars l29-assign-new-frame)
-    (Framework GenGrammars l30-finalize-frame-locations)
-    (Framework GenGrammars l32-uncover-register-conflict)
-    (Framework GenGrammars l33-assign-registers)
-    (Framework GenGrammars l35-discard-call-live)
-    (Framework GenGrammars l36-finalize-locations)
-    (Framework GenGrammars l37-expose-frame-var)
-    (Framework GenGrammars l38-expose-memory-operands)
-    (Framework GenGrammars l39-expose-basic-blocks)
-    (Framework GenGrammars l41-flatten-program)
     (Framework helpers)
     (Framework driver)
     (only (Framework wrappers aux)
       env rewrite-opnds compute-frame-size
       return-point-complex return-point-simple
       new-frames set! alloc))
+
+(define pass->unparser
+  (lambda (pass)
+    (case pass
+      ((source) unparse-LverifyScheme)
+      ((verify-scheme) unparse-LverifyScheme)
+      ((specify-representation) unparse-LspecifyRepresentation)
+      ((uncover-locals) unparse-LuncoverLocals)
+      ((remove-let) unparse-LremoveLet)
+      ((verify-uil) unparse-LremoveLet)
+      ((remove-complex-opera*) unparse-LremoveComplexOpera*)
+      ((flatten-set!) unparse-LflattenSet!)
+      ((impose-calling-conventions) unparse-LimposeCallingConventions)
+      ((expose-allocation-pointer) unparse-LexposeAllocationPointer)
+      ((uncover-frame-conflict) unparse-LuncoverFrameConflict)
+      ((pre-assign-frame) unparse-LpreAssignFrame)
+      ((assign-new-frame) unparse-LassignNewFrame)
+      ((finalize-frame-locations) unparse-LassignNewFrame)
+      ((select-instructions) unparse-LassignNewFrame)
+      ((uncover-register-conflict) unparse-LuncoverRegisterConflict)
+      ((assign-registers) unparse-LassignRegisters)
+      ((assign-frame) unparse-LassignNewFrame)
+      ((discard-call-live) unparse-LdiscardCallLive)
+      ((finalize-locations) unparse-LfinalizeLocations)
+      ((expose-frame-var) unparse-LexposeFrameVar)
+      ((expose-memory-operands) unparse-LexposeMemoryOperands)
+      ((expose-basic-blocks) unparse-LexposeBasicBlocks)
+      ((flatten-program) unparse-LflattenProgram)
+      ((generate-x86-64) (lambda (x) x))
+      (else (errorf 'pass->unparser
+              "Unparser for pass ~s not found" pass)))))
 
 (define pass->wrapper
   (lambda (pass)
@@ -386,7 +413,7 @@
   ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow true false nop
+      handle-overflow true false nop call
       * + -)
     (except (chezscheme) * + -))
   (reset-machine-state!)
@@ -402,7 +429,7 @@
   ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow true false nop ptr->datum))
+      handle-overflow true false nop ptr->datum call prim))
   (ptr->datum ,x))
 
 ;;-----------------------------------
@@ -415,7 +442,7 @@
   ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop ptr->datum)
+      handle-overflow locals true false nop ptr->datum call prim)
     (except (chezscheme) set!))
   (ptr->datum ,x))
 
@@ -433,12 +460,9 @@
   ,set! ,alloc
   (import
     (only (Framework wrappers aux)
-      handle-overflow locals true false nop ptr->datum)
+      handle-overflow locals true false nop ptr->datum call prim)
     (except (chezscheme) set! lambda))
   (ptr->datum ,x))
-
-;; TODO: Duplicate grammar for remove-complex-opera*/wrapper grammar check.
-;; TODO: Duplicate grammar for flatten-set!/wrapper
 
 ;;-----------------------------------
 ;; impose-calling-conventions/wrapper
@@ -453,10 +477,10 @@
   ,set!
   (import
     (only (Framework wrappers aux)
-      handle-overflow letrec locals true false nop ptr->datum)
+      handle-overflow letrec locals true false nop ptr->datum call prim)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l25-impose-calling-conventions x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -474,7 +498,7 @@
       handle-overflow letrec locals true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l26-expose-allocation-pointer  x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -493,7 +517,7 @@
       frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l27-uncover-frame-conflict x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;----------------------------------
@@ -511,7 +535,7 @@
       frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l28-pre-assign-frame x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;----------------------------------
@@ -530,9 +554,8 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(if (grammar-verification) (verify-grammar:l29-assign-new-frame x) x)))
+      ,x))
   (ptr->datum ,return-value-register))
-
 
 ;;-----------------------------------
 ;; finalize-frame-locations/wrapper
@@ -554,7 +577,7 @@
       true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-	     ,(if (grammar-verification) (verify-grammar:l30-finalize-frame-locations x) x)))
+	     ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -570,7 +593,7 @@
       register-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l32-uncover-register-conflict x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -586,7 +609,7 @@
       frame-conflict true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l33-assign-registers x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -601,7 +624,7 @@
       handle-overflow letrec locate true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l35-discard-call-live x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -616,7 +639,7 @@
       handle-overflow letrec true false nop ptr->datum)
     (except (chezscheme) set! letrec))
   (call/cc (lambda (k) (set! ,return-address-register k) 
-		   ,(if (grammar-verification) (verify-grammar:l36-finalize-locations x) x)))
+		   ,x))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -636,12 +659,11 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l37-expose-frame-var x) x))))
+      ,(rewrite-opnds x)))
   (ptr->datum ,return-value-register))
 
 ;; DUPLICATED from previous, except with different grammar verification:
-(define-language-wrapper
-  (expose-memory-operands/wrapper)
+(define-language-wrapper expose-memory-operands/wrapper
   (x)
   (environment env)
   ,return-point-simple
@@ -653,23 +675,21 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l38-expose-memory-operands x) x))))
+      ,(rewrite-opnds x)))
   (ptr->datum ,return-value-register))
 
-
-;;-----------------------------------
-;; expose-basic-blocks/wrapper
-;;-----------------------------------
-(define-language-wrapper expose-basic-blocks/wrapper (x)
+(define-language-wrapper expose-basic-blocks/wrapper
+  (x)
   (environment env)
+  ,return-point-simple
   ,set!
   (import
-    (only (Framework wrappers aux) handle-overflow ptr->datum)
+    (only (Framework wrappers aux) handle-overflow ptr->datum true false nop)
     (except (chezscheme) set!))
-  (call/cc
+  (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l39-expose-basic-blocks x) x))))
+      ,(rewrite-opnds x)))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -685,7 +705,7 @@
   (call/cc 
     (lambda (k)
       (set! ,return-address-register k)
-      ,(rewrite-opnds (if (grammar-verification) (verify-grammar:l41-flatten-program x) x))))
+      ,(rewrite-opnds x)))
   (ptr->datum ,return-value-register))
 
 ;;-----------------------------------
@@ -703,3 +723,4 @@
     ))
 
 )
+
