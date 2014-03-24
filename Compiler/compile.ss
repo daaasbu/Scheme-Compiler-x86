@@ -57,8 +57,8 @@
   (impose-calling-conventions)
   (expose-allocation-pointer)
   (uncover-frame-conflict)
-  (pre-assign-frame)
-  (assign-new-frame)
+ (pre-assign-frame)
+ (assign-new-frame)
   (iterate
     (finalize-frame-locations)
     (select-instructions)
@@ -72,6 +72,7 @@
   (expose-memory-operands)
   (expose-basic-blocks)
   (flatten-program)
-  (generate-x86-64 assemble))
+  (generate-x86-64 assemble)
+)
 
 )
