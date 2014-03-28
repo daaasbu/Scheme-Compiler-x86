@@ -57,13 +57,14 @@
 		 [else (error who "something went wrong - Body")])
 	
 	   (Tail : Tail (x index) -> Tail ())
+	   
+	   (Pred : Pred (x index) -> Pred ())
 
 	   (Effect : Effect (x index) -> Effect ()
 		   [(return-point ,l ,[tl index -> tl])  (let* ((nb (ash index word-shift))
-						  (set!-fp+ `(set! ,frame-pointer-register (+ ,frame-pointer-register ,nb)))
-						  (set!-fp- `(set! ,frame-pointer-register (- ,frame-pointer-register ,nb))))
-						  
-		    `(begin ,set!-fp+ (return-point ,l ,tl) ,set!-fp-))])
+								(set!-fp+ `(set! ,frame-pointer-register (+ ,frame-pointer-register ,nb)))
+								(set!-fp- `(set! ,frame-pointer-register (- ,frame-pointer-register ,nb))))
+							   `(begin ,set!-fp+ (return-point ,l ,tl) ,set!-fp-))])
 	   )
 	 ) ;End Library
 
