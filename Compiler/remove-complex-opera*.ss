@@ -131,7 +131,7 @@
 					 (else 
 					  (let-values (((output local-var-ls) (Value* val*)))
 					    (let* ((VAR (make-var)) 
-						   (ef (in-context Effect `(set! ,VAR ,val)))
+						   (ef (in-context Effect `(set! ,VAR ,(Value val))))
 						   (ef* (append (list ef) output))) 
 					      `(begin ,ef* ... (call ,VAR ,(reverse local-var-ls) ...))))))] 
 		 [(if ,[pred] ,[tl1] ,[tl2]) `(if ,pred ,tl1 ,tl2)]

@@ -6,7 +6,7 @@
 	  (Framework helpers)
 	  (Framework nanopass))
 
-	 (define-pass lift-letrec : LverifyScheme (x) -> LliftLetrec ()
+	 (define-pass lift-letrec : LintroduceProcedurePrimitives (x) -> LliftLetrec ()
 	   (definitions
 	     (define bindings '())
 	     )
