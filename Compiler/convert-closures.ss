@@ -32,7 +32,7 @@
 		       [(lambda (,uv* ...) (free (,uv** ...) ,expr))
 			(let ((cp (make-cp)))
 			  (values (in-context LambdaExpr `(lambda (,cp ,uv* ...) (bind-free (,cp ,uv** ...) ,(Expr expr)))) uv**))]
-		       [else (error who "FUCK NANOPASS AND IT'S STUPID FUCKING QUARKS!!!")])
+		       [else (error who "blah")])
 
 	   (Expr : Expr (x) -> Expr ()
 		 [(letrec ((,uv* ,le*) ...) ,expr)

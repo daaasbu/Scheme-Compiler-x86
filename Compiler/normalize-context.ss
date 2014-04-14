@@ -41,7 +41,7 @@
 			((Effect) (in-context Effect `(nop))))] 
 		 [,uv  (case type
 			 ((Value) (in-context Value `,uv))
-			 ((Pred) (in-context Pred `(true)))   
+			 ((Pred) (in-context Pred `(if (eq? ,uv '#f) (false) (true))))   
 			 ((Effect) (in-context Effect `(nop))))]    
 		 [(quote ,i) (case type
 			       ((Value) (in-context Value `(quote ,i)))
