@@ -53,14 +53,15 @@
 					 (else  `(mref ,first (prim + ,(- disp-vector-data tag-vector) ,second))))))
 			
 			((make-procedure)   (let ([tmp (unique-name 'TMP)])
-					      `(let ([,tmp (prim + (alloc ,(+ disp-procedure-data (* disp-procedure-data (cadr val*)))) ,tag-procedure)])
+	;				      (printf "disp-proc: ~a \n cadr: ~a \n" disp-procedure-data (cadr val*))
+					      `(let ([,tmp (prim + (alloc ,(* disp-procedure-data (add1 (cadr val*)))) ,tag-procedure)])
 						 (begin
 						   (mset! ,tmp ,(- disp-procedure-code tag-procedure) ,first)
 						   ,tmp))))
 			
 			
 		       ((procedure-ref) (let ((second (cadr val*)))
-					  `(mref ,first (prim + ,(- disp-procedure-data tag-procedure) ,second))))
+					  `(mref ,first ,(+ (- disp-procedure-data tag-procedure) second))))
 		       ((procedure-code) `(mref ,first ,(- disp-procedure-code tag-procedure)))
 			))]
 		   [(quote ,i) (case i
@@ -125,13 +126,14 @@
 					((integer? second) `(mref ,first ,(+ (- disp-vector-data tag-vector) second)))
 					(else `(mref ,first (prim + ,(- disp-vector-data tag-vector) ,second))))))		
 		       ((make-procedure)   (let ([tmp (unique-name 'TMP)])
-					     `(let ([,tmp (prim + (alloc ,(+ disp-procedure-data (* disp-procedure-data (cadr val*)))) ,tag-procedure)])
+					     `(let ([,tmp (prim + (alloc ,(* disp-procedure-data (add1 (cadr val*)))) ,tag-procedure)])
 						(begin
 						  (mset! ,tmp ,(- disp-procedure-code tag-procedure) ,first)
 						  ,tmp))))
-		
+
 		       ((procedure-ref) (let ((second (cadr val*)))
-					  `(mref ,first (prim + ,(- disp-procedure-data tag-procedure) ,second))))
+					  `(mref ,first ,(+ (- disp-procedure-data tag-procedure) second))))
+
 		       ((procedure-code) `(mref ,first ,(- disp-procedure-code tag-procedure)))
 		       
 		       ))]
