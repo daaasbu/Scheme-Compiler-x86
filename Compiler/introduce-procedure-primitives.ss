@@ -16,7 +16,7 @@
 		      [(= size count) '()]
 		      [else (if (memq (car uv*) free*) 
 				(let ([cell (with-output-language (LintroduceProcedurePrimitives Expr) 
-								  `(procedure-set! ,uv (quote ,count) (procedure-ref ,cp (quote ,count))))])
+								  `(procedure-set! ,uv (quote ,count) (procedure-ref ,cp (quote ,(get-index (car uv*) free*)))))])
 				
 				  (cons cell (bundle cp uv (cdr uv*) size (add1 count) free*)))
 				(let ([cell (with-output-language (LintroduceProcedurePrimitives Expr) 
@@ -45,10 +45,10 @@
 	   (ClosureBody : ClosureBody (x cp free*) -> Expr ()
 			[(closures ((,uv* ,l1* ,uv** ...) ...) ,expr)
 			 (let* ([size* (map length uv**)]
-			 [block* (apply append 
+				[block* (apply append 
 					(map (lambda (uv l uv* size) (make-procedure-set!-block cp uv uv* size free*)) 
 					     uv* l1* uv** size*))]
-			 [mp* (map (lambda (l size) `(make-procedure ,l (quote ,size))) l1* size*)])
+				[mp* (map (lambda (l size) `(make-procedure ,l (quote ,size))) l1* size*)])
 			 `(let ([,uv* ,mp*] ...) (begin ,block* ... ,(Expr expr cp free*))))]
 			[else (error who "fuck nanopass")])
 			 
@@ -57,6 +57,7 @@
 		 [(letrec ([,l0* ,le*] ...) ,clbd)
 		  `(letrec ([,l0* ,(map (lambda (le) (LambdaExpr le)) le*)] ...) ,(ClosureBody clbd cp free*))]	 
 		 [,uv (let ([index (get-index uv free*)])
+			
 			(if index 
 			    `(procedure-ref ,cp (quote ,index))
 			    uv))]
@@ -67,6 +68,8 @@
 		  `(begin ,(map (lambda (expr) (Expr expr cp free*)) expr*) ... ,(Expr expr cp free*))]
 		 [(,prim ,expr* ...) `(,prim ,(map (lambda (expr) (Expr expr cp free*)) expr*) ...)]
 		 [(call ,expr ,expr* ...)
+		  (let ((test (Expr expr cp free*)))
+		    (printf "test: ~a \n" test))
 		
 		      `(call (procedure-code ,(Expr expr cp free*)) ,(map (lambda (expr) (Expr expr cp free*)) expr*) ...)]
 		 [(if ,expr0 ,expr1 ,expr2)

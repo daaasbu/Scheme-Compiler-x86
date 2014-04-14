@@ -92,5 +92,5 @@
 		 [(call ,expr ,expr* ...) (case type 
 					    ((Value) (in-context Value `(call ,(Expr expr 'Value) ,(map (lambda (x) (Expr x 'Value)) expr*) ...)))
 					    ((Effect) (in-context Effect `(call ,(Expr expr 'Value) ,(map (lambda (x) (Expr x 'Value)) expr*) ...)))
-					    (else (display "Your hypothesis is wrong")))])))
+					    ((Pred)  (in-context Pred `(if (eq? '#f (call ,(Expr expr 'Value) ,(map (lambda (x) (Expr x 'Value)) expr*) ...)) (false) (true)))))])))
 
