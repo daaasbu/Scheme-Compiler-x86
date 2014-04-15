@@ -1,426 +1,542 @@
-;; P423 / P523
-;; Week 12 grammars
-;;
-;; Passes:
-;;   verify-scheme              l-01 -> l-01
-;;   optimize-direct-call       l-01 -> l-06
-;;   remove-anonymous-lambda    l-06 -> l-07
-;;   sanitize-binding-forms     l-07 -> l-08
-;;   uncover-free               l-08 -> l-09
-;;   convert-closures           l-09 -> l-10
-;;   optimize-known-call        l-10 -> l-11
-;;   introduce-procedure-primitives l-10 -> l-15
-;;   lift-letrec                l-01 -> l-17
-;;   normalize-context          l-17 -> l-18
-;;   specify-representation     l-18 -> l-19
-;;   uncover-locals             l-19 -> l-20
-;;   remove-let                 l-20 -> l-21
+(library (source-grammar)
+  (export
 
-;;   verify-uil                 l-22 -> l-22
-;;   remove-complex-opera*      l-22 -> l-23
-;;   flatten-set!               l-23 -> l-24
-;;   impose-calling-conventions l-24 -> l-25
-;;   uncover-frame-conflict     l-25 -> l-27
-;;   pre-assign-frame           l-27 -> l-28
-;;   assign-new-frame           l-28 -> l-29
-;;     finalize-frame-locations  l-29 -> l-30
-;;     select-instructions       l-30 -> l-30
-;;     uncover-register-conflict l-30 -> l-32
-;;     assign-registers          l-32 -> l-33
-;;     everybody-home?           l-33 -> bool
-;;     assign-frame              l-33 -> l-29
-;;   discard-call-live          l-33 -> l-35
-;;   finalize-locations         l-35 -> l-36
-;;   expose-frame-var           l-36 -> l-37
-;;   expose-basic-blocks        l-37 -> l-39
-;;   optimize-jumps             l-39 -> l-39
-;;   flatten-program            l-39 -> l-41
-;;   generate-x86-64            l-41 -> ()
+    unparse-LverifyScheme
+    unparse-LremoveAnonymousLambda
+    unparse-LuncoverFree
+    unparse-LconvertClosures
+    unparse-LintroduceProcedurePrimitives
+    unparse-LliftLetrec
+    unparse-LnormalizeContext
+    unparse-LspecifyRepresentation
+    unparse-LuncoverLocals
+    unparse-LremoveLet
+    unparse-LremoveComplexOpera*
+    unparse-LflattenSet!
+    unparse-LimposeCallingConventions
+    unparse-LexposeAllocationPointer
+    unparse-LuncoverFrameConflict 
+    unparse-LpreAssignFrame
+    unparse-LassignNewFrame 
+    unparse-LuncoverRegisterConflict 
+    unparse-LassignRegisters 
+    unparse-LdiscardCallLive
+    unparse-LfinalizeLocations
+    unparse-LexposeFrameVar 
+    unparse-LexposeMemoryOperands
+    unparse-LexposeBasicBlocks
+    unparse-LflattenProgram
+    
+    LverifyScheme
+    LremoveAnonymousLambda
+    LuncoverFree
+    LconvertClosures
+    LintroduceProcedurePrimitives
+    LliftLetrec
+    LnormalizeContext
+    LspecifyRepresentation
+    LuncoverLocals
+    LremoveLet
+    LremoveComplexOpera*
+    LflattenSet!
+    LimposeCallingConventions
+    LexposeAllocationPointer
+    LuncoverFrameConflict
+    LpreAssignFrame
+    LassignNewFrame
+    LuncoverRegisterConflict 
+    LassignRegisters
+    LdiscardCallLive
+    LfinalizeLocations
+    LexposeFrameVar 
+    LexposeMemoryOperands
+    LexposeBasicBlocks
+    LflattenProgram
+    effect-prim?
+    pred-prim?
+    value-prim?
+    immediate?
+    prim?
+    prim->arity
+  )
+  (import 
+    (Framework nanopass)
+    (Framework helpers)
+    (chezscheme))
 
-(p423-grammars
+  ;; Predicates for the define-language form
+  (define (binop? x) (if (memq x '(+ - * logand logor sra)) #t #f))
+  (define immediate? (lambda (x) (or (int64? x) (fixnum? x) (null? x) (boolean? x))))
+  (define (location? x) (or (disp-opnd? x) (index-opnd? x)))
+  (define (rop? x) (if (memq x '(< <= = >= >)) #t #f))
+  (define (conflict-graph? ct)
+      (and (list? ct)
+           (andmap
+             (lambda (ls)
+               (and (list? ls)
+                    (andmap
+                      (lambda (x)
+                        (or (uvar? x) (register? x) (frame-var? x)))
+                      ls)))
+             ct)))
 
- (l01-verify-scheme
-    (start Prog)
-    (Prog Expr)
-    (Expr     
-      (quote Immediate)
-      (let ([UVar Expr]*) Expr)
-      (letrec ([UVar Lamb] *) Expr)
-      (if Expr Expr Expr)
-      (begin Expr * Expr)
-      (ValPrim Expr *)
-      (EffectPrim Expr *)
-      (PredPrim Expr *)
-      (Expr Expr *)
-      Lamb
-      UVar
+(define-syntax define-primitives
+    (lambda (x)
+      (define ->string
+        (lambda (x)
+          (cond
+            [(string? x) x]
+            [(identifier? x) (symbol->string (syntax->datum x))]
+            [(symbol? x) (symbol->string x)]
+            [(number? x) (number->string x)])))
+      (define build-id
+        (lambda (tid . parts)
+          (datum->syntax tid
+            (string->symbol
+              (apply string-append (map ->string parts))))))
+      (syntax-case x ()
+        [(_ name (type [primname primarity] ...) ...)
+          (with-syntax ([name? (build-id #'name #'name "?")]
+                         [(type-name? ...)
+                           (map
+                             (lambda (type)
+                               (build-id #'name type "-" #'name "?"))
+                             #'(type ...))]
+                         [name->arity (build-id #'name #'name "->arity")])
+            #'(begin
+                (define name?
+                  (lambda (x)
+                    (or (type-name? x) ...)))
+                (define type-name?
+                  (lambda (x)
+                    (memq x '(primname ...))))
+                ...
+                (define name->arity
+                  (lambda (x)
+                    (cond
+                      [(assq x '((primname . primarity) ... ...)) => cdr]
+                      [else #f])))))])))
+
+(define-primitives prim
+    (value [+ 2] [- 2] [* 2] [car 1] [cdr 1] [cons 2] [make-vector 1]
+      [vector-length 1] [vector-ref 2] [void 0] [procedure-code 1]
+      [procedure-ref 2] [make-procedure 2])
+    (pred [< 2] [<= 2] [= 2] [>= 2] [> 2] [boolean? 1] [eq? 2]
+      [fixnum? 1] [null? 1] [pair? 1] [vector? 1] [procedure? 1])
+    (effect [set-car! 2] [set-cdr! 2] [vector-set! 3] [procedure-set! 3]))
+
+(define-language LverifyScheme
+  (entry Expr)
+  (terminals
+   (immediate (i))
+   (prim (prim))
+   (uvar (uv)))
+  (Expr (expr)
+        le
+        uv
+        (let ([uv* expr*] ...) expr)
+        (quote i)
+        (if expr0 expr1 expr2)
+        (begin expr* ... expr)
+        (letrec ([uv* le*] ...) expr)
+        (prim expr* ...)
+        (call expr expr* ...))
+  (LambdaExpr (le)
+              (lambda (uv* ...) expr)))
+
+  (define-language LremoveAnonymousLambda
+    (extends LverifyScheme)
+    (entry Expr)
+    (Expr (expr) (- le)))
+
+(define-language LuncoverFree
+    (extends LremoveAnonymousLambda)
+    (entry Expr)
+    (LambdaExpr (le)
+      (- (lambda (uv* ...) expr))
+      (+ (lambda (uv* ...) fbd)))
+    (FreeBody (fbd)
+      (+ (free (uv* ...) expr))))
+
+(define-language LconvertClosures
+    (extends LuncoverFree)
+    (entry Expr)
+    (terminals
+      (+ (label (l))))
+    (Expr (expr)
+      (- (letrec ([uv* le*] ...) expr))
+      (+ (letrec ([l* le*] ...) clbd)
+         l))
+    (LambdaExpr (le)
+      (- (lambda (uv* ...) fbd))
+      (+ (lambda (uv* ...) bfbd)))
+    (FreeBody (fbd)
+      (- (free (uv* ...) expr)))
+    (BindFreeBody (bfbd)
+      (+ (bind-free (uv uv* ...) expr)))
+    (ClosureBody (clbd)
+      (+ (closures ([uv* l* uv** ...] ...) expr))))
+
+(define-language LintroduceProcedurePrimitives
+    (extends LconvertClosures)
+    (entry Expr)
+    (Expr (expr)
+      (- (letrec ([l* le*] ...) clbd))
+      (+ (letrec ([l* le*] ...) expr)))
+    (ClosureBody (clbd)
+      (- (closures ([uv* l* uv** ...] ...) expr)))
+    (BindFreeBody (bfbd)
+      (- (bind-free (uv uv* ...) expr)))
+    (LambdaExpr (le)
+      (- (lambda (uv* ...) bfbd))
+      (+ (lambda (uv ...) expr))))
+
+(define-language LliftLetrec 
+  (extends LintroduceProcedurePrimitives)
+  (entry Prog) 
+  (Prog (prog) (+ (letrec ([l* le*] ...) expr)))
+  (LambdaExpr (le)
+    (- (lambda (uv ...) expr))
+    (+ (lambda (uv* ...) expr)))
+  (Expr (expr) 
+    (- (letrec ([l* le*] ...) expr))))
+
+#;(define-language LliftLetrec 
+  (entry Prog)
+  (terminals
+   (label (l))
+   (immediate (i))
+   (prim (prim))
+   (uvar (uv)))
+  (Expr (expr)
+        l
+        uv
+        (let ([uv* expr*] ...) expr)
+        (quote i)
+        (if expr0 expr1 expr2)
+        (begin expr* ... expr)
+        (prim expr* ...)
+        (call expr expr* ...))
+  (LambdaExpr (le)
+              (lambda (uv* ...) expr))
+  (Prog (prog)
+        (letrec ([l* le*] ...) expr)))
+  
+(define-language LnormalizeContext
+  (extends LliftLetrec)
+  (entry Prog)
+  (terminals
+   (- (prim (prim)))
+   (+ (value-prim (vprim))
+      (effect-prim (eprim))
+      (pred-prim (pprim))))
+  (Effect (ef)
+          (+ (nop) (if pred ef0 ef1) (begin ef* ... ef)
+             (let ([uv* val*] ...) ef) (eprim val* ...)
+             (call val val* ...)))
+  (Pred (pred)
+        (+ (true) (false) (if pred0 pred1 pred2)
+           (begin ef* ... pred) (let ([uv* val*] ...) pred)
+           (pprim val* ...)))
+  (Value (val)
+         (+ l uv 'i (if pred val0 val1) (begin ef* ... val)
+            (let ([uv* val*] ...) val) (vprim val* ...)
+            (call val val* ...)))
+  (Prog (prog)
+        (- (letrec ([l* le*] ...) expr))
+        (+ (letrec ([l* le*] ...) val)))
+  (LambdaExpr (le)
+              (- (lambda (uv* ...) expr))
+              (+ (lambda (uv* ...) val)))
+  (Expr (expr)
+        (- l uv (let ([uv* expr*] ...) expr) 'i
+           (if expr0 expr1 expr2) (begin expr* ... expr)
+           (prim expr* ...) (call expr expr* ...))))
+
+#;(define-language LnormalizeContext
+  (entry Prog)
+  (terminals 
+    (pred-prim (pprim))
+    (effect-prim (eprim))
+    (value-prim (vprim))
+    (immediate (i))
+    (uvar (uv))
+    (label (l)))
+  (LambdaExpr (le) (lambda (uv* ...) val))
+  (Value (val)
+     l uv 
+     (quote i)
+     (if pred val0 val1)
+     (begin ef* ... val)
+     (let ([uv* val*] ...) val)
+     (vprim val* ...)
+     (call val val* ...))
+  (Pred (pred) 
+     (true)
+     (false)
+     (if pred0 pred1 pred2)
+     (begin ef* ... pred)
+     (let ([uv* val*] ...) pred)
+     (pprim val* ...))
+  (Effect (ef)
+    (nop)
+    (if pred ef0 ef1)
+    (begin ef* ... ef)
+    (let ([uv* val*] ...) ef)
+    (eprim val* ...)
+    (call val val* ...))
+  (Prog (prog)
+     (letrec ([l* le*] ...) val)))
+
+(define-language LspecifyRepresentation 
+  (extends LnormalizeContext) 
+  (entry Prog)
+  (terminals
+    (- (value-prim (vprim))
+       (effect-prim (eprim))
+       (pred-prim (pprim)))
+    (+ (frame-var (fv))
+       (rop (relop))
+       (binop (op))
+       (register (r))))
+  (Triv (triv) (+ uv i l))
+  (Tail (tl)
+    (+ triv (alloc val) (mref val0 val1) (prim op val0 val1)
+       (let ([uv* val*] ...) tl) (if pred tl0 tl1)
+       (begin ef* ... tl) (call val val* ...)))
+  (Prog (p)
+    (- (letrec ([l* le*] ...) val))
+    (+ (letrec ([l* le*] ...) tl)))
+  (Effect (ef)
+    (- (eprim val* ...))
+    (+ (set! uv val) (mset! val0 val1 val2)))
+  (Pred (pred)
+    (- (pprim val* ...))
+    (+ (prim relop val0 val1)))
+  (Value (val)
+    (- (vprim val* ...) 'i uv l)
+    (+ (prim op val0 val1) (mref val0 val1) (alloc val) triv))
+  (LambdaExpr (le)
+    (- (lambda (uv* ...) val))
+    (+ (lambda (uv* ...) tl))))
+
+  (define-language LuncoverLocals
+    (extends LspecifyRepresentation)
+    (entry Prog)
+    (Prog (prog)
+      (- (letrec ([l* le*] ...) tl))
+      (+ (letrec ([l* le*] ...) bd)))
+    (LambdaExpr (le)
+      (- (lambda (uv* ...) tl))
+      (+ (lambda (uv* ...) bd)))
+    (Body (bd)
+      (+ (locals (uv* ...) tl)))) 
+
+ (define-language LremoveLet
+    (extends LuncoverLocals)
+    (entry Prog)
+    (Value (val)
+      (- (let ([uv* val*] ...) val)))
+    (Effect (ef)
+      (- (let ([uv* val*] ...) ef))
       )
-    (Lamb (lambda (UVar *) Expr))
-    ; (Immediate fixnum () #t #f) ;; BUILTIN!
-    )
+    (Tail (tl) 
+      (- (let ([uv* val*] ...) tl)))
+    (Pred (pred)
+      (- (let ([uv* val*] ...) pred))))   
 
-  ;; No l06-optimize-direct-call, grammar does not change.
- 
-  (l07-remove-anonymous-lambda
-     (%remove (Expr Lamb let))
-     (%add (Expr (let ([UVar LambdaOrExpr]*) Expr))
-	   (LambdaOrExpr Lamb Expr)))
+  (define-language LremoveComplexOpera*
+    (extends LremoveLet)
+    (entry Prog)
+    (Tail (tl) (- (prim op val0 val1)
+                  (mref val0 val1)
+                  (alloc val)
+                  (call val val* ...))
+               (+ (prim op triv0 triv1)
+                  (mref triv0 triv1)
+                  (alloc triv)
+                  (call triv0 triv* ...)))
+    (Effect (ef) (- (call val val* ...)
+                     (mset! val0 val1 val2))
+                 (+ (call triv triv* ...)
+                    (mset! triv0 triv1 triv2)))
+    (Pred (pred) (- (prim relop val0 val1))
+                 (+ (relop triv0 triv1)))
+    (Value (val) (- (prim op val0 val1) (call val val* ...)
+                    (mref val0 val1)
+                    (alloc val))
+                 (+ (prim op triv0 triv1) (call triv triv* ...)
+                     (mref triv0 triv1)
+                     (alloc triv))))
 
-  (l08-sanitize-bindings
-     (%remove Lamb LambdaOrExpr (Expr let letrec))
-     (%add (Expr (let ([UVar Expr]*) Expr)
-		 (letrec ([UVar (lambda (UVar *) Expr)] *) Expr))))
+  (define-language LflattenSet!
+    (extends LremoveComplexOpera*)
+    (entry Prog)
+    (Effect (ef) (- (set! uv val))
+                 (+ (set! uv rhs)))
+    (Value (val) (- (prim op triv0 triv1) 
+                   (call triv triv* ...)
+                   (mref triv0 triv1)
+                   (alloc triv)
+                    triv 
+                    (if pred val0 val1)
+                    (begin ef* ... val)))
+    (Rhs (rhs) (+ triv (op triv0 triv1) 
+                 (call triv triv* ...)
+                 (alloc triv)
+                 (mref triv0 triv1))))
 
-  (l09-uncover-free
-     (%remove (Expr letrec))
-     (%add
-       (Expr
-         (letrec ((UVar (lambda (UVar *) (free (UVar *) Expr))) *) Expr)
-       )
-     )
+  (define-language LimposeCallingConventions
+    (extends LflattenSet!)
+    (entry Prog)
+    (Body (bd) (- (locals (uv* ...) tl))
+               (+ (locals (uv* ...) nftl)))
+    (NewFrameTail (nftl) (+ (new-frames ((uv* ...) ...) tl)))
+    (LambdaExpr (le) (- (lambda (uv* ...) bd))
+                     (+ (lambda () bd)))
+    (Tail (tl) (- triv (call triv0 triv* ...) (prim op triv0 triv1))
+               (+ (triv locrf* ...)))
+    (Triv (triv) (- uv)
+                 (+ v))
+    (Effect (ef) (- (set! uv rhs) 
+                    (call triv triv* ...))
+                 (+ (set! v rhs) 
+                   (return-point l tl)))
+    (Var (v) (+ uv locrf))
+    (Loc (locrf) (+ r fv uv))
+    (Rhs (rhs) (- (call triv triv* ...))))
+
+  (define-language LexposeAllocationPointer
+    (extends LimposeCallingConventions)
+    (entry Prog)
+    (Rhs (rhs)
+      (- (alloc triv))))
+
+  (define-language LuncoverFrameConflict 
+    (extends LexposeAllocationPointer)
+    (entry Prog)
+    (terminals        (+ (conflict-graph (cfgraph))))
+    (NewFrameTail (nftl) (- (new-frames ((uv* ...) ...) tl))
+                         (+ (new-frames ((uv* ...) ...) stl)))
+    (SpillsTail (stl)     (+ (spills (uv* ...) fbd)))
+    
+    (CallLiveBody (cbd) (+ (call-live (uv* ...) tl)))
+    (FrameBody (fbd)  (+ (frame-conflict cfgraph cbd))))
+
+  (define-language LpreAssignFrame
+    (extends LuncoverFrameConflict)
+    (entry Prog)
+    (SpillsTail (stl)     (- (spills (uv* ...) fbd)))
+    (NewFrameTail (nftl) (- (new-frames ((uv* ...) ...) stl))
+                         (+ (new-frames ((uv* ...) ...) lbd)))
+    (Lbody (lbd) (+ (locate ([uv* locrf*] ...) fbd))))
+
+  (define-language LassignNewFrame
+    (extends LpreAssignFrame)
+    (entry Prog)
+    (NewFrameTail (nftl)
+      (- (new-frames ((uv* ...) ...) lbd)))
+    (CallLiveBody (cbd)
+      (- (call-live (uv* ...) tl)))
+    (FrameBody (fbd)
+      (- (frame-conflict cfgraph cbd))
+      (+ (frame-conflict cfgraph tl)))
+    (Body (bd)
+      (- (locals (uv* ...) nftl))
+      (+ (locals (uv* ...) ubd)
+         (locate ([uv* locrf*] ...) tl)))
+    (Ubody (ubd)  
+      (+ (ulocals (uv* ...) lbd))))
+
+  (define-language LuncoverRegisterConflict 
+    (extends LassignNewFrame)
+    (entry Prog)
+    (FrameBody (fbd)        (- (frame-conflict cfgraph tl))
+                            (+ (frame-conflict cfgraph rbd)))
+    (RegisterBody (rbd) (+ (register-conflict cfgraph tl))))
+
+  (define-language LassignRegisters 
+    (extends LuncoverRegisterConflict)
+    (entry Prog)
+    (FrameBody (fbd)    (- (frame-conflict cfgraph rbd))
+                        (+ (frame-conflict cfgraph tl)))
+    (Ubody (ubd)        (- (ulocals (uv* ...) lbd))
+                        (+ (ulocals (uv* ...) sbd)))
+    (SpillBody (sbd)    (+ (spills (uv* ...) lbd)))
+    (RegisterBody (rbd) (- (register-conflict cfgraph tl))))
+
+  (define-language LdiscardCallLive
+    (extends LassignRegisters)
+    (entry Prog)
+    (Body (bd) (- (locals (uv* ...) ubd)))
+    (Ubody (ubd) (- (ulocals (uv* ...) sbd)))
+    (SpillBody (sbd) (- (spills (uv* ...) lbd)))
+    (Lbody (lbd) (- (locate ((uv* locrf*) ...) fbd)))
+    (FrameBody (fbd) (- (frame-conflict cfgraph tl)))
+    (Loc (locrf) (- uv))
+
+    (Tail (tl)      (- (triv locrf* ...))
+                    (+ (triv))))
+
+  (define-language LfinalizeLocations 
+    (extends LdiscardCallLive)
+    (entry Prog)
+    (Prog (p)        (- (letrec ([l* le*] ...) bd))
+                     (+ (letrec ([l* le*] ...) tl)))
+    (LambdaExpr (le) (- (lambda () bd))
+                     (+ (lambda () tl)))
+    (Body (bd)       (- (locate ((uv* locrf*) ...) tl)
+                        #;(locals (uv* ...) ubd)))
+    (Effect (ef)     (- (set! v rhs))
+                     (+ (set! locrf rhs)))
+    (Triv (triv)     (- v) 
+                     (+ locrf))
+    (Var (v)         (- uv locrf)))
+
+  (define-language LexposeFrameVar 
+    (extends LfinalizeLocations)
+    (entry Prog)
+    ;; Frame-vars are now gone. Instead they are represented as offsets from the
+    ;; frame-pointer-register
+    (terminals      (+ (location (loc)))
+                    (- (frame-var (fv))))
+    (Loc (locrf)    (- fv)
+                    (+ loc)))
+
+  (define-language LexposeMemoryOperands
+    (extends LexposeFrameVar)
+    (entry Prog)
+    (Rhs (rhs)
+      (- (mref triv0 triv1)))
+    (Effect (ef)
+      (- (mset! triv0 triv1 triv2))))
+  (define-language LexposeBasicBlocks
+    (extends LexposeMemoryOperands)
+    (entry Prog)
+    (Tail (tl)    (- (if pred tl0 tl1))
+                  (+ (if (relop triv0 triv1) (l0) (l1))))
+    (Effect (ef)  (- (if pred ef0 ef1)
+                     (return-point l tl)
+                     ;(begin ef* ... ef)
+                     (nop)))
+    (Pred (pred)  (- (true)
+                     (false)
+                     (relop triv0 triv1)
+                     (if pred0 pred1 pred2)
+                     (begin ef* ... pred))))
+
+  (define-language LflattenProgram
+    (extends LexposeBasicBlocks)
+    (entry Prog)
+    (LambdaExpr (le) (- (lambda () tl)))
+    (Tail (tl)       (- (if (relop triv0 triv1) (l0) (l1))
+                       (begin ef* ... tl)))
+    (Pred (pred)     (+ (not (relop triv0 triv1))
+                        (relop triv0 triv1)))
+    (Code (c)        (+ l
+                        (set! locrf rhs)
+                        (jump triv)
+                        (if pred c))) ;; Should be (jump l)
+    (Prog (p)        (- (letrec ([l* le*] ...) tl))
+                     (+ (code c* ...))))
   )
-
-  (l10-convert-closures
-     (%remove (Expr letrec))
-     (%add
-       (Expr
-         (letrec ((Label (lambda (UVar *) (bind-free (UVar *) Expr))) *) (closures ((UVar Label UVar *) *) Expr))
-         Label
-       )
-     )
-  )
-
-  (l15-introduce-procedure-primitives
-     (%remove (Expr letrec))
-     (%add
-       (Expr
-         (letrec ((Label (lambda (UVar *) Expr)) *) Expr)
-       )
-     )
-  )  
-
-  (l17-lift-letrec
-    (%remove Prog (Expr letrec)) ;; Remove ALL.  Start fresh.
-    (%add 
-     (Prog (letrec ((Label (lambda (UVar *) Expr)) *) Expr)))
-    )
-
-  (l18-normalize-context
-    (%remove Prog Expr)  ;; Remove ALL.  Start fresh.
-    (%add
-     (Prog
-      (letrec ((Label (lambda (UVar *) Value)) *) Value))
-     (Pred
-      (let ([UVar Value]*) Pred)
-      (true)
-      (false)
-      (if Pred Pred Pred)
-      (begin Effect * Pred)
-      (PredPrim Value *))
-     (Effect
-      (let ([UVar Value]*) Effect)
-      (nop)
-      (if Pred Effect Effect)
-      (begin Effect * Effect)
-      (EffectPrim Value *)
-      (Value Value *))
-     (Value
-      (quote Immediate)
-      (let ([UVar Value]*) Value)
-      (if Pred Value Value)
-      (begin Effect * Value)
-      (ValPrim Value *)
-      (Value Value *)
-      UVar Label))
-    )
-
-  (l19-specify-representation
-   (%remove Prog Pred Effect Value)  ;; Remove ALL.  Start fresh.
-   (%add
-    (Prog
-      (letrec ((Label (lambda (UVar *) Tail)) *) Tail))
-    (Tail
-      (let ([UVar Value]*) Tail)
-      (if Pred Tail Tail)
-      (begin Effect * Tail)      
-      (alloc Value)
-      (mref  Value Value)
-      (Binop Value Value)
-      (Value Value *)
-      Triv)
-    (Pred
-      (let ([UVar Value]*) Pred)
-      (true)
-      (false)
-      (if Pred Pred Pred)
-      (begin Effect * Pred)
-      (Relop Value Value))
-    (Effect
-      (let ([UVar Value]*) Effect)
-      (nop)
-      (mset! Value Value Value)
-      (if Pred Effect Effect)
-      (begin Effect * Effect)
-      (Value Value *))
-    (Value
-      (let ([UVar Value]*) Value)
-      (if Pred Value Value)
-      (begin Effect * Value)
-      (alloc Value)
-      (mref  Value Value)
-      (Binop Value Value)
-      (Value Value *)
-      Triv)
-    (Triv
-      UVar
-      Integer
-      Label)))
-
-  (l20-uncover-locals
-   (%remove Prog)
-   (%add 
-    (Prog (letrec ((Label (lambda (UVar *) Body)) *) Body))
-    (Body (locals (UVar *) Tail))))
-
-;  (l21-remove-let
-  (l22-verify-uil
-   (%remove 
-    (Tail let)
-    (Pred let)
-    (Effect let)
-    (Value let))
-   (%add (Effect (set! UVar Value))))
-
-;  (l22-verify-uil)
-
- ;; Replace Value with Triv in arguments of procedure calls and primitive application.
- (l23-remove-complex-opera
-   (%remove
-     (Tail Binop Value alloc mref)
-     (Pred Relop)
-     (Value alloc mref Binop Value)
-     (Effect Value mset!))
-   (%add
-     (Tail
-       (alloc Triv)
-       (mref Triv Triv)
-       (Binop Triv Triv)
-       (Triv Triv *))
-     (Pred (Relop Triv Triv))
-     (Value (alloc Triv)
-	    (mref Triv Triv)
-	    (Binop Triv Triv)
-	    (Triv Triv *))
-     (Effect 
-      (mset! Triv Triv Triv)
-      (Triv Triv *)
-      )))
-
- ;; Remove Value, set! rhs may only be Triv or Binop.
- ;; We could treat mref's as Binops and save a bit in the grammar, but
- ;; then we wouldn't be able to verify that they are removed later.
- (l24-flatten-set
-   (%remove
-     Value
-     (Effect set! UVar (alloc Triv)))
-   (%add
-     (Effect
-       (set! UVar Triv)
-       (set! UVar (Binop Triv Triv))
-       (set! UVar (Triv Triv *))
-       (set! UVar (alloc Triv))
-       (set! UVar (mref Triv Triv))
-       )))
-
- ;; alloc/mref will only occur on the RHS of set! after this pass:
- (l25-impose-calling-conventions
-   (%remove
-     (Prog letrec)
-     (Tail Triv Binop alloc mref)
-     (Effect set! Triv)
-     (Triv UVar)
-     (Body locals))
-   (%add
-     (Prog (letrec ((Label (lambda () Body)) *) Body))
-     (Body (locals (UVar *) 
-	     (new-frames (Frame *)
-		Tail)))
-     ;; Operands can include new frame vars (NFVs) which are
-     ;; technically UVars even though they are used as locations:
-     (Tail (Triv Var *))  ;; Note 'Var' not 'Loc'.
-     (Effect
-       (set! Var Triv)
-       (set! Var (Binop Triv Triv))
-       (set! Var (alloc Triv))
-       (set! Var (mref Triv Triv))
-       (return-point Label Tail))
-     (Loc
-       Reg
-       FVar)
-     (Var
-       UVar
-       Loc)
-     (Triv Var)
-     (Frame (UVar *))))
-
- ;; After this point, alloc is gone and we reference the
- ;; allocation-pointer-register directly.
- (l26-expose-allocation-pointer
-   (%remove (Effect set!))
-   (%add 
-    (Effect (set! Var Triv)
-	    (set! Var (Binop Triv Triv))
-	    ;; Remove alloc!
-	    (set! Var (mref Triv Triv))
-	    )))
-
- (l26-expose-allocation-pointer
-   (%remove
-     (Effect set!)
-     )
-   (%add
-     (Effect
-       (set! Var Triv)
-;       (set! Var (alloc Triv))
-       (set! Var (Binop Triv Triv))
-       (set! Var (mref Triv Triv))
-       )
-     )
-   )
-
- (l27-uncover-frame-conflict
-    (%remove 
-      (Body locals))
-    (%add
-      (Body
-        (locals (UVar *)
-          (new-frames (Frame *)
-	    (spills (UVar *)
-	       (frame-conflict ((UVar Var *) *)
-                 (call-live (UFVar *) Tail))))))
-      (UFVar UVar FVar)))
-
-(l28-pre-assign-frame
-    (%remove 
-      (Body locals))
-    (%add
-      (Body
-        ;; Eliminate 'spills' only:
-        (locals (UVar *)
-          (new-frames (Frame *)
-	    (locate ((UVar FVar) *)
-	      (frame-conflict ((UVar Var *) *)
-		(call-live (UFVar *) Tail)))))
-        )))
-
-;; This is an important grammar.  Its the one that is used at the top
-;; and end of every iteration of the register-allocation loop.
-(l29-assign-new-frame
-    (%remove 
-      (UFVar UVar FVar) ; No need for this after this point [Z]
-      (Body locals)
-      Frame)
-    (%add
-      (Body
-	;; Add ulocals, remove new-frames, call-live:
-        (locals (UVar *)
-                (ulocals (UVar *)
-                         (locate ((UVar FVar) *) 
-                                 (frame-conflict ((UVar Var *) *)
-                                 Tail))))
-	;; Add "finished" locate form, as this grammar is used in iterative register allocation.
-	(locate ((UVar Loc) *) Tail)
-	)))
-
-;; Resolve NFVs into frame vars.
-(l30-finalize-frame-locations
-    (%remove (Tail Triv))
-    (%add (Tail (Triv Loc *))))
-
-;; Adds register-conflict to the deeply nested Body forms.
-(l32-uncover-register-conflict
-  (%remove
-    (Body locals))
-  (%add
-    ;; Ignore conflicts with frame vars:
-    (Conflict Reg UVar)
-    (Body
-      (locals (UVar *)
-              (ulocals (UVar *)
-                       (locate ((UVar FVar) *) 
-                               (frame-conflict ((UVar Var *) *)
-                                               (register-conflict ((UVar Conflict *) *)
-                                                                  Tail))))))))
-;; Adds the 'spill' form.
-(l33-assign-registers
-  (%remove
-    (Body locals)
-    (Conflict))
-  (%add
-    (Body
-      (locals (UVar *)
-              (ulocals (UVar *)
-                       (spills (UVar *)
-                               (locate ((UVar FVar) *) 
-                                       (frame-conflict ((UVar Var *) *) 
-                                                       Tail))))))))
-
-
-; assign-frame: This is the same as l29-assign-new-frame
-
-
-(l35-discard-call-live
-  (%remove
-    (Body locals)
-    (Tail Triv))
-  (%add
-    (Tail (Triv))))
-
-(l36-finalize-locations
-  (%remove
-    (Body locate)
-    UVar
-    Var)
-  (%rename
-    (Body -> Tail)
-    (Var -> Loc)))
-
-(l37-expose-frame-var
-  (%remove UFVar Loc)
-  (%add (Loc Reg Disp)))
-
-(l38-expose-memory-operands
-   (%remove (Tail mref) 
-	    (Effect mset! set!))
-   (%add 
-    (Loc Ind)
-    (Effect
-     (set! Loc Triv)
-     (set! Loc (Binop Triv Triv)))))
-
-(l39-expose-basic-blocks
-  (%remove
-    (Tail if)
-    Pred
-    (Effect nop if begin return-point))
-  (%add
-    (Tail
-      (if (Relop Triv Triv) (Label) (Label)))))
-
-;; No l40, optimize-jumps uses l39.
-
-(l41-flatten-program
-  (%remove
-    Prog
-    Tail)
-  (%rename
-    (Effect -> Statement))
-  (%add
-    (Prog
-      (code Statement * Statement))
-    (Statement
-      (if (Relop Triv Triv) (jump Label))
-      (if (not (Relop Triv Triv)) (jump Label))
-      (jump Triv)
-      Label)))
-)
