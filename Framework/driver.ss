@@ -16,12 +16,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; Adapted for P423 Spring 2012 by Claire Alvis
+;; Adapted for P423/P523 Spring 2014 (nanopass) by Tim Zakian
 ;;
 ;; These drivers allow you to define compilers and wrappers.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;DEFINING COMPILERS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;; DEFINING COMPILERS ;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; This library can be used to define custom sets of compiler
 ;; passes. Generally this is done to chain the full set of passes for
@@ -81,7 +84,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;DEFINING WRAPPERS;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;; DEFINING WRAPPERS ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; These drivers also allow you to define language-wrappers, to
 ;; transform an incoming expression into an expression that can be
@@ -148,11 +153,14 @@
      (syntax-violation 'define-compiler
        "break encountered outside of an iteration"
        x #'(break/when pred?))]
-    [((pass wrapper) . rest) (identifier? #'pass)
+    [((pass wrapper unparser) . rest) (identifier? #'pass)
      (verify-pass-specifications #'rest)]
-    [((trace pass wrapper) . rest) (identifier? #'trace)
+    [((trace pass wrapper unparser) . rest) (identifier? #'trace)
      (verify-pass-specifications #'rest)]
-    [((pass wrapper assemble) . rest) (identifier? #'pass)
+    [((trace pass wrapper unparser assemble) . rest) (identifier? #'trace)
+     (syntax-violation 'define-compiler
+       "Cannot trace emit passes" #'pass)]
+    [((pass wrapper unparser assemble) . rest) (identifier? #'pass)
      (verify-pass-specifications #'rest)]
     [(bad . rest)
      (syntax-violation 'define-compiler
@@ -175,11 +183,11 @@
        [((iterate spec1 spec2 ...) . rest)
         (verify-iterated-pass-specifications #'(spec1 spec2 ...))
         (verify-iterated-pass-specifications orig break? #'rest)]
-       [((pass wrapper) . rest) (identifier? #'pass)
+       [((pass wrapper unparser) . rest) (identifier? #'pass)
         (verify-iterated-pass-specifications orig break? #'rest)]
-       [((trace pass wrapper) . rest) (identifier? #'pass)
+       [((trace pass wrapper unparser) . rest) (identifier? #'pass)
         (verify-iterated-pass-specifications orig break? #'rest)]
-       [((pass wrapper assemble) . rest) (identifier? #'pass)
+       [((pass wrapper unparser assemble) . rest) (identifier? #'pass)
         (syntax-violation 'define-compiler
           "emit pass encountered during iteration"
           orig #'(pass wrapper assemble))]
@@ -264,13 +272,13 @@
 
 (define-syntax compose-passes
   (syntax-rules (iterate break/when trace)
-    [(_ k (input source-wrapper)) input]
-    [(_ k (input source-wrapper) (iterate . specs) . rest)
+    [(_ k (input source-wrapper) source-unparser) input]
+    [(_ k (input source-wrapper) source-unparser (iterate . specs) . rest)
      (compose-passes k
-       ((run-iterated-pass input source-wrapper . specs)
-        (next-wrapper source-wrapper . specs))
-       . rest)]
-    [(_ k (input source-wrapper) (break/when pred?) . rest)
+       ((run-iterated-pass input source-wrapper source-unparser . specs)
+        (next-wrapper source-wrapper source-unparser . specs))
+        (next-unparser source-wrapper source-unparser . specs) . rest)]
+    [(_ k (input source-wrapper) source-unparser (break/when pred?) . rest)
      (begin
        (when (not (syntax->datum #'k))
          (syntax-violation 'define-compiler
@@ -280,16 +288,21 @@
      (compose-passes k
        ((let ([inv input]) (if (pred? inv) (k inv) inv))
         source-wrapper)
-       . rest)]
-    [(_ k (input source-wrapper) (pass wrapper) . rest)
+       source-unparser . rest)]
+    [(_ k (input source-wrapper) source-unparser (pass wrapper unparser) . rest)
      (compose-passes k
-       ((run-pass input source-wrapper wrapper pass) wrapper)
-       . rest)]
-    [(_ k (input source-wrapper) (trace pass wrapper) . rest)
-     (let ([pass (trace-lambda pass (i) (pass i))])
+       ((run-pass input source-wrapper source-unparser wrapper unparser pass) wrapper)
+       unparser . rest)]
+    [(_ k (input source-wrapper) source-unparser (trace pass wrapper unparser) . rest)
+     ;; Unparse to make it human readble
+     (let ([pass (lambda (x) 
+                   (printf "<~a>\n" 'pass) 
+                   (pretty-print (source-unparser x)) 
+                   (newline) 
+                   (pass x))])
        (compose-passes k (input source-wrapper) 
-         (pass wrapper) . rest))]
-    [(_ k (input source-wrapper) (pass wrapper assemble) . rest)
+                       source-unparser (pass wrapper unparser) . rest))]
+    [(_ k (input source-wrapper) source-unparser (pass wrapper unparser assemble) . rest)
      (begin
        (when (syntax->datum #'k)
          (syntax-violation 'define-compiler
@@ -300,147 +313,157 @@
            "non-final assemble pass"
            #'(pass wrapper assemble)))
        #t)
-     (run-emit-pass input source-wrapper wrapper assemble pass)]))
+     (run-emit-pass input source-wrapper source-unparser wrapper assemble pass)]))
 
 (define-syntax next-wrapper
   (syntax-rules (iterate break/when trace)
-    [(_ src specs ... (pass wrapper) (break/when . rest)) wrapper]
-    [(_ src specs ... (trace pass wrapper) (break/when . rest)) wrapper]
+    [(_ src specs ... (pass wrapper unparser) (break/when . rest)) wrapper]
+    [(_ src specs ... (trace pass wrapper unparser) (break/when . rest)) wrapper]
     [(_ src (break/when . rest)) src]
     [(_ src specs ... last) (next-wrapper src specs ...)]))
 
+(define-syntax next-unparser
+  (syntax-rules (iterate break/when trace)
+    [(_ src specs ... (pass wrapper unparser) (break/when . rest)) unparser]
+    [(_ src specs ... (trace pass wrapper unparser) (break/when . rest)) unparser]
+    [(_ src (break/when . rest)) src]
+    [(_ src specs ... last) (next-unparser src specs ...)]))
+
 (define-syntax run-pass
   (syntax-rules ()
-    [(_ input input-wrapper output-wrapper pass)
+    [(_ input input-wrapper input-unparser output-wrapper output-unparser pass)
      (let ([inv input])
        (let ([output (pass inv)])
-         (let ([input-res (input-wrapper inv)]
-               [output-res (output-wrapper output)])
-           (verify-answers-against inv input-res output output-res pass))
+         (let ([input-res (input-wrapper (input-unparser inv))]
+               [output-res (output-wrapper (output-unparser output))])
+           (verify-answers-against (input-unparser inv) input-res (output-unparser output) output-res pass))
          output))]))
 
 (define-syntax run-emit-pass
   (syntax-rules ()
-    [(_ input input-wrapper output-wrapper assemble pass)
+    [(_ input input-wrapper input-unparser output-wrapper assemble pass)
      (let ([inv input])
        (let ([output (assemble (lambda () (pass inv)))])
-         (let ([input-res (input-wrapper inv)]
+         (let ([input-res (input-wrapper (input-unparser inv))]
                [output-res (output-wrapper output)])
-           (verify-answers-against inv input-res output output-res pass))
+           (verify-answers-against (input-unparser inv) input-res output output-res pass))
          (void)))]))
 
 (define-syntax run-iterated-pass
   (syntax-rules ()
-    [(_ input input-wrapper . specs)
+    [(_ input input-wrapper input-unparser . specs)
      (call-with-current-continuation
        (lambda (k)
          (let loop ([x input])
-           (loop (compose-passes k (x input-wrapper) . specs)))))]))
+           (loop (compose-passes k (x input-wrapper) input-unparser . specs)))))]))
 
 (define-syntax define-compiler-aux
   (syntax-rules ()
-    ((_ (bindings ...) (name source-wrapper) . specs)
+    ((_ (bindings ...) (name source-wrapper) (n source-unparser) parser . specs)
      (verify-pass-specifications #'specs)
-     (define (name input)
-       (let (bindings ...)
-         (compose-passes #f (input source-wrapper) . specs))))))
+     (define name
+       (lambda (x)
+         ((lambda (input)
+            (let (bindings ...)
+              (compose-passes #f (input source-wrapper) source-unparser . specs)))
+          (parser x)))))))
 
 (define-syntax rewrite-specs
   (syntax-rules (iterate trace break/when %)
-    [(_ name wp (specs ...) (b ...))
-     (define-compiler-aux ((sw (wp 'source)) b ...) (name sw) specs ...)]
-    [(_ name wp ((specs ...) % ispecs ...) (b ...) % rest ...)
-     (rewrite-specs name wp
+    [(_ name wp up parser (specs ...) (b ...))
+     (define-compiler-aux ((sw (wp 'source)) (su (up 'source)) b ...) (name sw) (name su) parser specs ...)]
+    [(_ name wp up parser ((specs ...) % ispecs ...) (b ...) % rest ...)
+     (rewrite-specs name wp up parser 
        (specs ... (iterate ispecs ...)) (b ...) rest ...)]
-    [(_ name wp (specs ...) (b ...) (iterate spec1 spec2 ...) rest ...)
-     (rewrite-specs name wp
+    [(_ name wp up parser (specs ...) (b ...) (iterate spec1 spec2 ...) rest ...)
+     (rewrite-specs name wp up parser
        ((specs ...) %) (b ...) spec1 spec2 ... % rest ...)]
-    [(_ name wp (specs ...) (b ...) (trace pass foo ...) rest ...)
-     (rewrite-specs name wp
-       (specs ... (trace pass w foo ...))
-       (b ... (w (wp 'pass)))
+    [(_ name wp up parser (specs ...) (b ...) (trace pass foo ...) rest ...)
+     (rewrite-specs name wp up parser
+       (specs ... (trace pass w u foo ...))
+       (b ... (u (up 'pass)) (w (wp 'pass)))
        rest ...)]
-    [(_ name wp (specs ...) (b ...) (break/when foo ...) rest ...)
-     (rewrite-specs name wp
+    [(_ name wp up parser (specs ...) (b ...) (break/when foo ...) rest ...)
+     (rewrite-specs name wp up parser
        (specs ... (break/when foo ...)) (b ...) rest ...)]
-    [(_ name wp (specs ...) (b ...) (pass foo ...) rest ...)
-     (rewrite-specs name wp
-       (specs ... (pass w foo ...))
-       (b ... (w (wp 'pass)))
+    [(_ name wp up parser (specs ...) (b ...) (pass foo ...) rest ...)
+     (rewrite-specs name wp up parser
+       (specs ... (pass w u foo ...))
+       (b ... (u (up 'pass)) (w (wp 'pass)))
        rest ...)]))
 
 (define-syntax define-compiler
   (syntax-rules ()
-    ((_ (name wrapper-proc) spec1 spec2 ...)
-     (rewrite-specs name wrapper-proc () () spec1 spec2 ...))
-    ((_ (name name-step wrapper-proc) spec1 spec2 ...)
+    ((_ (name wrapper-proc unparser-proc parser) spec1 spec2 ...)
+     (rewrite-specs name wrapper-proc unparser-proc parser () () spec1 spec2 ...))
+    ((_ (name name-step wrapper-proc unparser-proc parser) spec1 spec2 ...)
      (begin
-       (define-compiler (name wrapper-proc) spec1 spec2 ...)
-       (define-compiler-step name-step spec1 spec2 ...)))))
+       (define-compiler (name wrapper-proc unparser-proc parser) spec1 spec2 ...)
+       (define-compiler-step name-step unparser-proc parser spec1 spec2 ...)))))
 
 ;;Defining the Stepper;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-syntax run-one-pass
   (syntax-rules ()
-    ((_ pass inp)
+    ((_ unparser pass inp)
      (begin
        (printf "\nPass: ~s\n" pass)
        (let ((res (pass inp)))
          (begin
            (printf "\nOutput: \n")
-           (pretty-print res)
+           (pretty-print ((unparser 'pass) res))
            res))))))
 
 (define-syntax define-compiler-step
   (syntax-rules ()
-    ((_ name spec1 . spec)
+    ((_ name unparser parser spec1 . spec)
      (define name
        (case-lambda
          ((prog)
           (name prog #f))
          ((prog n)
-          (let ((inp prog) (i n))
-            (let-values (((inp _)
-                          (define-compiler-loop inp i spec1 . spec)))
+          (let ((inp (parser prog)) (i n))
+            (let-values (((outpur-unparser inp _)
+                          (define-compiler-loop unparser inp i spec1 . spec)))
               inp))))))))
 
 (define-syntax define-compiler-loop
   (syntax-rules (trace iterate break/when %)
-    ((_ inp i) (values inp i))
-    ((_ inp i (trace pass . foo) . rest)
-     (define-compiler-loop inp i (pass . foo) . rest))
-    ((_ inp i (iterate . ispecs) . rest)
+    ((_ unparser inp i) (values unparser inp i))
+    ((_ unparser inp i (trace pass . foo) . rest)
+     (define-compiler-loop unparser inp i (pass . foo) . rest))
+    ((_ unparser inp i (iterate . ispecs) . rest)
      (letrec ((loop
-                (lambda (inp^ i^)
-                  (define-iteration-loop inp^ i^ loop . ispecs))))
-       (let-values (((inp^ i^) (loop inp i)))
-         (define-compiler-loop inp^ i^ . rest))))
-    ((_ inp i (pass . foo) . rest)
+                (lambda (unparser^ inp^ i^)
+                  (define-iteration-loop unparser^ inp^ i^ loop . ispecs))))
+       (let-values (((unparser^ inp^ i^) (loop unparser inp i)))
+         (define-compiler-loop unparser^ inp^ i^ . rest))))
+    ((_ unparser inp i (pass . foo) . rest)
      (if (and i (zero? i))
-         (values inp i)
-         (let ((res (run-one-pass pass inp)) (i (and i (sub1 i))))
-           (define-compiler-loop res i . rest))))))
+         (values unparser inp i)
+         (let ((res (run-one-pass unparser pass inp)) (i (and i (sub1 i))) )
+           (define-compiler-loop unparser res i . rest))))))
 
 (define-syntax define-iteration-loop
   (syntax-rules ()
-    ((_ inp i jump)
-     (jump inp i))
-    ((_ inp i jump (break/when pred?) . rest)
+    ((_ unparser inp i jump)
+     (jump unparser inp i))
+    ((_ unparser inp i jump (break/when pred?) . rest)
      (if (and i (zero? i))
-         (values inp i)
+         (values unparser inp i)
          (let ((stop? (pred? inp)))
            (if stop?
                (begin
                  (printf "\nBreaking iteration after ~s\n" pred?)
-                 (values inp i))
+                 (values unparser inp i))
                (begin
                  (printf "\nBreak/when predicate ~s was not true, iteration continues\n" pred?)
-                 (define-iteration-loop inp i jump . rest))))))
-    ((_ inp i jump spec . rest)
+                 (define-iteration-loop unparser inp i jump . rest))))))
+    ((_ unparser inp i jump spec . rest)
      (if (and i (zero? i))
-         (values inp i)
-         (let-values (((inp^ i^) (define-compiler-loop inp i spec)))
-           (define-iteration-loop inp^ i^ jump . rest))))))
+         (values unparser inp i)
+         (let-values (((unparser^ inp^ i^) (define-compiler-loop unparser inp i spec)))
+           (define-iteration-loop unparser^ inp^ i^ jump . rest))))))
 
 ;;Other;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
