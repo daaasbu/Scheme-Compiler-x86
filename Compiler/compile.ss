@@ -1,15 +1,19 @@
 (library (Compiler compile)
-  (export p423-compile p423-step)
+  (export p423-compile 
+    p423-step)
   (import
     (chezscheme)
+    (source-grammar)
+    (Framework nanopass)
     (Framework driver)
     (Framework wrappers)
     (Framework match)
     (Framework helpers)
     (Compiler verify-scheme)
     (Compiler optimize-direct-call)
+    (Compiler sanitize-binding-forms)  
     (Compiler remove-anonymous-lambda)
-    (Compiler sanitize-binding-forms)
+  
     (Compiler uncover-free)
     (Compiler convert-closures)
     (Compiler optimize-known-call)
@@ -30,7 +34,7 @@
     (Compiler select-instructions)
     (Compiler uncover-register-conflict)
     (Compiler assign-registers)
-    (Compiler everybody-home)
+    (Compiler everybody-home?)
     (Compiler assign-frame)
     (Compiler finalize-frame-locations)
     (Compiler discard-call-live)
@@ -50,11 +54,15 @@
     (error 'assemble "assembly failed"))
   "./t")
 
-(define-compiler (p423-compile p423-step pass->wrapper)
+(define-parser parse-LverifyScheme LverifyScheme)
+
+;; Compose the complete Compiler as a pipeline of passes.
+(define-compiler (p423-compile p423-step pass->wrapper pass->unparser parse-LverifyScheme)
   (verify-scheme)
   (optimize-direct-call)
+  (sanitize-binding-forms)  
   (remove-anonymous-lambda)
-  (sanitize-binding-forms)
+ 
   (uncover-free)
   (convert-closures)
   (optimize-known-call)
@@ -73,12 +81,12 @@
   (pre-assign-frame)
   (assign-new-frame)
   (iterate
-    (finalize-frame-locations)
-    (select-instructions)
-    (uncover-register-conflict)
-    (assign-registers)
-    (break/when everybody-home?)
-    (assign-frame))
+   (finalize-frame-locations)
+   (select-instructions)
+   (uncover-register-conflict)
+   (assign-registers) 
+   (break/when everybody-home?)
+   (assign-frame))
   (discard-call-live)
   (finalize-locations)
   (expose-frame-var)
@@ -86,7 +94,7 @@
   (expose-basic-blocks)
   (optimize-jumps)
   (flatten-program)
-  (generate-x86-64 assemble))
+  (generate-x86-64 assemble) 
+)
 
-  
 )
